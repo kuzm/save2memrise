@@ -11,6 +11,7 @@ phases:
       - echo CODEBUILD_RESOLVED_SOURCE_VERSION=$CODEBUILD_RESOLVED_SOURCE_VERSION
       - echo Running tests...
       - export DOCKER_RUN="docker run --rm -v $PWD:/repository -w /repository cakebuild/cake:v0.32.1-2.1-sdk"
+      - chmod +x ./build.sh
       - $DOCKER_RUN ./build.sh --target=UnitTest
       - echo Building the Docker image...
       - export IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
