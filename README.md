@@ -1,4 +1,4 @@
-# Save to Memrise	
+# Save to Memrise
 
 This unofficial extension allows you to add a word or phrase to your Memrise in a few clicks. You can add a selection from a web page or type in a word directly. The extension creates a course with saved words that you can then practice on https://memrise.com.
 
