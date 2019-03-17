@@ -4,6 +4,7 @@ Description: >-
 Parameters:
   GitHubOwner:
     Type: String
+    Default: 'kuzm'
   GitHubSecret:
     Type: String
     NoEcho: true

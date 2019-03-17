@@ -33,7 +33,7 @@ Resources:
   PipelineBucket:
     Type: 'AWS::S3::Bucket'
     DeletionPolicy: Delete
-  AppPipelineWebhook:
+  PipelineWebhook2:
     Type: AWS::CodePipeline::Webhook
     Properties:
       Authentication: GITHUB_HMAC
@@ -45,7 +45,7 @@ Resources:
           MatchEquals: refs/heads/{Branch}
       TargetPipeline: !Ref Pipeline
       TargetAction: Source
-      Name: PipelineWebhook
+      Name: S2MPipelineWebhook2
       TargetPipelineVersion: !GetAtt Pipeline.Version
       RegisterWithThirdParty: true
   BuildPublicApiProject:
