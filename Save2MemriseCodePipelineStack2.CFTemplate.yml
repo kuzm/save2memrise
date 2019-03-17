@@ -3,6 +3,14 @@ Description: >-
   Pipeline for continuous delivery of Save2Memrise app which consists of EC2
   service and S3 bucket. 
 Parameters:
+  GitHubOwner:
+    Type: String
+  GitHubSecret:
+    Type: String
+    NoEcho: true
+  GitHubOAuthToken:
+    Type: String
+    NoEcho: true
   BlueProdChromeExtBucketName: 
     Type: String
     Description: S3 Bucket Name of the Chrome extension
@@ -25,6 +33,21 @@ Resources:
   PipelineBucket:
     Type: 'AWS::S3::Bucket'
     DeletionPolicy: Delete
+  AppPipelineWebhook:
+    Type: AWS::CodePipeline::Webhook
+    Properties:
+      Authentication: GITHUB_HMAC
+      AuthenticationConfiguration:
+        SecretToken: !Ref GitHubSecret
+      Filters:
+        - 
+          JsonPath: "$.ref"
+          MatchEquals: refs/heads/{Branch}
+      TargetPipeline: !Ref Pipeline
+      TargetAction: Source
+      Name: PipelineWebhook
+      TargetPipelineVersion: !GetAtt Pipeline.Version
+      RegisterWithThirdParty: true
   BuildPublicApiProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
@@ -124,16 +147,19 @@ Resources:
           Actions:
             - InputArtifacts: []
               Name: Source
-              ActionTypeId:
+              ActionTypeId: 
                 Category: Source
-                Owner: AWS
-                Version: '1'
-                Provider: CodeCommit
-              OutputArtifacts:
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              OutputArtifacts: 
                 - Name: SourceOutput
-              Configuration:
-                RepositoryName: save2memrise
-                BranchName: master
+              Configuration: 
+                Owner: !Ref GitHubOwner
+                Repo: save2memrise
+                Branch: master
+                OAuthToken: !Ref GitHubOAuthToken
+                PollForSourceChanges: false
               RunOrder: 1
         - Name: Build
           Actions:

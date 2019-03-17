@@ -2,6 +2,14 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   Root stack to configure CI/CD 
 Parameters:
+  GitHubOwner:
+    Type: String
+  GitHubSecret:
+    Type: String
+    NoEcho: true
+  GitHubOAuthToken:
+    Type: String
+    NoEcho: true
   EcsClusterName:
     Type: String
     Description: >
@@ -41,6 +49,9 @@ Resources:
       TemplateURL: 'https://s3.amazonaws.com/save2memrisestack2-cloudformationbucket/Save2MemriseCodePipelineStack2.CFTemplate.yml'
       TimeoutInMinutes: 60
       Parameters: 
+        GitHubOwner: !Ref GitHubOwner
+        GitHubSecret: !Ref GitHubSecret
+        GitHubOAuthToken: !Ref GitHubOAuthToken
         BlueProdChromeExtBucketName: !GetAtt BlueProdDeployableStack.Outputs.ChromeExtBucketName
         GreenProdChromeExtBucketName: !GetAtt GreenProdDeployableStack.Outputs.ChromeExtBucketName
         BlueProdChromeExtCloudfrontDistribution: !GetAtt BlueProdDeployableStack.Outputs.ChromeExtCloudfrontDistribution
