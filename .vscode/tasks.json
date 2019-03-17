@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/Services/Public.API/Public.API.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "buildIntegrationTests",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/test/Services/Public.API.IntegrationTests/Public.API.IntegrationTests.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}

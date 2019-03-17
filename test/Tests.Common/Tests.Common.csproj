@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NSpec" Version="3.1.0"/>
+    <PackageReference Include="Serilog" Version="2.7.1"/>
+    <PackageReference Include="RichardSzalay.MockHttp" Version="5.0.0"/>
+    <PackageReference Include="Optional" Version="4.0.0"/>
+    <PackageReference Include="Serilog" Version="2.7.1"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.1.1"/>
+    <PackageReference Include="Microsoft.Extensions.Options" Version="2.1.1"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.1.1"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1"/>
+    <PackageReference Include="OneOf" Version="2.1.127"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.1.1"/>
+    <PackageReference Include="Shouldly" Version="3.0.2"/>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo CODEBUILD_RESOLVED_SOURCE_VERSION=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo Running tests...
+      - export DOCKER_RUN="docker run --rm -v $PWD:/repository -w /repository cakebuild/cake:v0.32.1-2.1-sdk"
+      - $DOCKER_RUN ./build.sh --target=UnitTest
+      - echo Building the Docker image...
+      - export IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - docker build --build-arg APP_VERSION=$IMAGE_TAG --tag $IMAGE_REPO_NAME:$IMAGE_TAG --file public.api.Dockerfile .
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - export IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - printf "[{\"name\":\"public-api\",\"imageUri\":\"${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}\"}]" > imagedefinitions.json
+artifacts:
+  files:
+    - imagedefinitions.json

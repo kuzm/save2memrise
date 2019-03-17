@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Stack to configure a save2memrise certificate 
+Resources:
+  ELBAcmCertificate: 
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: 'save2memrise.com'
+      SubjectAlternativeNames:
+        - '*.save2memrise.com'
+        - '*.prod-blue.save2memrise.com'
+        - '*.prod-green.save2memrise.com'
+      DomainValidationOptions:
+        - DomainName: save2memrise.com
+          ValidationDomain: save2memrise.com

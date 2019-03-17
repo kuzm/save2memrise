@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Stack for deployable resources e.g. services and storage
+Parameters:
+  EcsClusterName:
+    Type: String
+    Description: >
+      Specifies the ECS Cluster Name with which the resources would be
+      associated
+    Default: default
+  RootDomainName:
+    Type: String
+    Description: The full domain name e.g. save2memrise.com
+    AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
+    ConstraintDescription: must be a valid DNS zone name.
+  FullChromeExtDomainName:
+    Type: String
+    Description: The full domain name e.g. chromeext.save2memrise.com
+    AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
+    ConstraintDescription: must be a valid DNS zone name.
+  FullPublicApiDomainName:
+    Type: String
+    Description: The full domain name e.g. api.save2memrise.com
+    AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
+    ConstraintDescription: must be a valid DNS zone name.
+  ChromeExtCloudfrontDistributionAliases:
+    Type: String
+    Description: Comma-separated list of CNAMEs
+  CloudFrontAcmCertificateArn:
+    Type: String
+    Default: 'arn:aws:acm:us-east-1:321373361512:certificate/14d61e98-6acc-4cb9-9b7b-b6789eff61c5'
+    Description: the Amazon Resource Name (ARN) of an AWS Certificate Manager (ACM) certificate in the *us-east-1* region.
+    AllowedPattern: "arn:aws:acm:.*"
+  DesiredCapacity:
+    Type: Number
+    Default: '1'
+    Description: Number of instances to launch in your ECS cluster.
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    Description: EC2 instance type //TODO not used
+  LoadBalancerCanonicalHostedZoneID:
+    Type: String
+  LoadBalancerDNSName:
+    Type: String
+  PublicApiTaskDefinition:
+    Type: String
+  VpcId:
+    Type: String
+  LoadBalancerTargetGroup:
+    Type: String
+  CustomDependsOn:
+    Type: String
+    Description: >-
+      DependsOn attribute does not support !If function. As a workaround, set this parameter to 
+      !GetAtt expression.
+Resources:
+  ChromeExtBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Delete
+    Properties:
+      AccessControl: PublicRead
+      BucketName: !Ref 'FullChromeExtDomainName'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+  ChromeExtCloudfrontDistribution: 
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - ChromeExtBucket
+    Properties:
+      DistributionConfig: 
+        Comment: Cloudfront Distribution pointing to S3 bucket
+        Origins:
+          - DomainName: !Select [2, !Split ["/", !GetAtt ChromeExtBucket.WebsiteURL ]]
+            Id: S3Origin
+            CustomOriginConfig:
+              HTTPPort: '80'
+              HTTPSPort: '443'
+              OriginProtocolPolicy: http-only
+        Enabled: true
+        DefaultRootObject: index.html
+        Aliases: !Split [ ",", !Ref ChromeExtCloudfrontDistributionAliases ]
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - GET
+          - HEAD
+          Compress: true
+          TargetOriginId: S3Origin
+          ForwardedValues:
+            QueryString: true
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+          DefaultTTL: 3600
+          MaxTTL: 3600
+          MinTTL: 3600
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          AcmCertificateArn: !Ref 'CloudFrontAcmCertificateArn'
+          SslSupportMethod: sni-only
+  ChromeExtDNSName:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Join ['', [!Ref 'RootDomainName', .]]
+      RecordSets:
+      - Name: !Ref 'FullChromeExtDomainName'
+        Type: A
+        AliasTarget:
+          # The hosted zone ID. For load balancers, use the canonical hosted zone ID of the load balancer. 
+          # For Amazon S3, use the hosted zone ID for your bucket's website endpoint. 
+          # For CloudFront, use Z2FDTNDATAQYW2.
+          HostedZoneId: Z2FDTNDATAQYW2
+          DNSName: !GetAtt ChromeExtCloudfrontDistribution.DomainName
+  PublicApiExtDNSName:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Join ['', [!Ref 'RootDomainName', .]]
+      RecordSets:
+      - Name: !Ref 'FullPublicApiDomainName'
+        Type: A
+        AliasTarget:
+          HostedZoneId: !Ref LoadBalancerCanonicalHostedZoneID 
+          DNSName: !Ref LoadBalancerDNSName
+  PublicApiEcsService2: 
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref EcsClusterName
+      DesiredCount: !Ref 'DesiredCapacity'
+      LoadBalancers:
+      - ContainerName: 'public-api'
+        ContainerPort: '8080'
+        TargetGroupArn: !Ref LoadBalancerTargetGroup
+      Role: 'arn:aws:iam::321373361512:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS'
+      TaskDefinition: !Ref PublicApiTaskDefinition
+Outputs:
+  ChromeExtCloudfrontDistribution:
+    Value: !Ref ChromeExtCloudfrontDistribution
+  ChromeExtCloudfrontDistributionDomainName:
+    Value: !GetAtt ChromeExtCloudfrontDistribution.DomainName
+  ChromeExtBucketName:
+    Value: !Ref ChromeExtBucket
+  PublicApiEcsService:
+    Value: !Ref PublicApiEcsService2

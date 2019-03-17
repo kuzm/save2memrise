@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Save to Memrise</title>
+    <link rel="stylesheet" type="text/css" href="semantic.min.css">
+    <script src="frame.bundle.js"></script>
+    <style>
+        html {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        body {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            margin: 0;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="savingMessageDimmer" class="ui inverted page dimmer">
+    <h2 class="ui medium text loader">
+        Saving...
+    </h2>
+</div>
+
+<div id="savedMessageDimmer" class="ui inverted page dimmer">
+    <div class="content">
+        <h2 class="ui header" style="color: rgba(0,0,0,.87)">
+            Saved!
+        </h2>
+    </div>
+</div>
+
+<div id="forbiddenMessageDimmer" class="ui inverted page dimmer">
+    <div class="content">
+        <div>
+            <h2 class="ui header" style="color: rgba(0,0,0,.87)">
+                Not saved!
+            </h2>
+            <br/>
+            <a href="https://www.memrise.com/login/" target="_blank">Login to Memrise</a>
+        </div>
+    </div>
+</div>
+
+<div id="errorMessageDimmer" class="ui inverted page dimmer">
+    <div class="content">
+        <h2 class="ui header" style="color: rgba(0,0,0,.87)">
+            Failed! Please retry. 
+        </h2>
+    </div>
+</div>
+
+<h2>Save to Memrise</h1>
+
+<div class="ui form" style="margin-bottom:10px">
+    <div class="field">
+        <label>Word</label>
+        <div class="ui right input">
+            <input type="text" id="wordTxt" placeholder="" style="margin-right: 5px;">
+            <div id="wordLang" class="ui compact selection dropdown" style="min-width: 100px;">
+                <div class="text"></div>
+                <i class="dropdown icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="field">
+        <label>Definition</label>
+        <div class="ui right input">
+            <textarea id="definitionTxt" rows="2" style="margin-right: 5px;"></textarea>
+            <div id="definitionLang" class="ui compact selection dropdown" style="min-width: 100px;">
+                <div class="text"></div>
+                <i class="dropdown icon"></i>
+            </div>
+        </div>
+    </div>
+    <button id="saveWordBtn" class="ui button" type="submit">Save</button>
+</div>
+
+</body>
+</html>

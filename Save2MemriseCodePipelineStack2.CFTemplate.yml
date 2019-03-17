@@ -1,0 +1,234 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Pipeline for continuous delivery of Save2Memrise app which consists of EC2
+  service and S3 bucket. 
+Parameters:
+  BlueProdChromeExtBucketName: 
+    Type: String
+    Description: S3 Bucket Name of the Chrome extension
+  GreenProdChromeExtBucketName: 
+    Type: String
+    Description: S3 Bucket Name of the Chrome extension
+  BlueProdChromeExtCloudfrontDistribution: 
+    Type: String
+    Description: CloudFront distribution ID of the Chrome extension
+  GreenProdChromeExtCloudfrontDistribution: 
+    Type: String
+    Description: CloudFront distribution ID of the Chrome extension
+  EcsClusterName:
+    Type: String
+  BlueProdPublicApiEcsService:
+    Type: String
+  GreenProdPublicApiEcsService:
+    Type: String
+Resources:
+  PipelineBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Delete
+  BuildPublicApiProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: !Sub '${AWS::StackName}-BuildPublicApi'
+      Description: Build Public Api service
+      Artifacts:
+        Type: CODEPIPELINE
+      #TODO Rid of hardcoded IDs
+      ServiceRole: 'arn:aws:iam::321373361512:role/Save2MemriseCodeBuildProjectServiceRole'
+      EncryptionKey: 'arn:aws:kms:eu-central-1:321373361512:alias/aws/s3'
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/docker:17.09.0'
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: eu-central-1
+          - Name: AWS_ACCOUNT_ID
+            Value: 321373361512
+          - Name: IMAGE_REPO_NAME
+            Value: save2memrise
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: public-api-buildspec.yml
+      TimeoutInMinutes: 10
+  BlueProdDeployChromeExtProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: !Sub '${AWS::StackName}-BuildChromeExt-BlueProd'
+      Description: Deploy Chrome Extension
+      Artifacts:
+        Type: CODEPIPELINE
+      #TODO Rid of hardcoded IDs
+      ServiceRole: 'arn:aws:iam::321373361512:role/Save2MemriseCodeBuildProjectServiceRole'
+      EncryptionKey: 'arn:aws:kms:eu-central-1:321373361512:alias/aws/s3'
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/docker:17.09.0'
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: eu-central-1
+          - Name: AWS_ACCOUNT_ID
+            Value: 321373361512
+          - Name: IMAGE_REPO_NAME
+            Value: save2memrise
+          - Name: CDN_DISTRIBUTION_ID
+            Value: !Ref BlueProdChromeExtCloudfrontDistribution
+          - Name: S3_BUCKET_NAME
+            Value: !Ref BlueProdChromeExtBucketName
+          - Name: ENVIRONMENT
+            Value: prod-blue
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: chrome-ext-buildspec.yml
+      TimeoutInMinutes: 10
+  GreenProdDeployChromeExtProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: !Sub '${AWS::StackName}-BuildChromeExt-GreenProd'
+      Description: Deploy Chrome Extension
+      Artifacts:
+        Type: CODEPIPELINE
+      #TODO Rid of hardcoded IDs
+      ServiceRole: 'arn:aws:iam::321373361512:role/Save2MemriseCodeBuildProjectServiceRole'
+      EncryptionKey: 'arn:aws:kms:eu-central-1:321373361512:alias/aws/s3'
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/docker:17.09.0'
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: eu-central-1
+          - Name: AWS_ACCOUNT_ID
+            Value: 321373361512
+          - Name: IMAGE_REPO_NAME
+            Value: save2memrise
+          - Name: CDN_DISTRIBUTION_ID
+            Value: !Ref GreenProdChromeExtCloudfrontDistribution
+          - Name: S3_BUCKET_NAME
+            Value: !Ref GreenProdChromeExtBucketName
+          - Name: ENVIRONMENT
+            Value: prod-green
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: chrome-ext-buildspec.yml
+      TimeoutInMinutes: 10
+  Pipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      RoleArn: 'arn:aws:iam::321373361512:role/AWS-CodePipeline-Service'
+      Stages:
+        - Name: Source
+          Actions:
+            - InputArtifacts: []
+              Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: '1'
+                Provider: CodeCommit
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                RepositoryName: save2memrise
+                BranchName: master
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: BuildPublicApi
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: '1'
+                Provider: CodeBuild
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildPublicApiOutput
+              Configuration:
+                ProjectName: !Ref BuildPublicApiProject
+              RunOrder: 1
+        - Name: DeployToBlueProd
+          Actions:
+            - Name: Approval
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Version: '1'
+                Provider: Manual
+              Configuration:
+                CustomData: 'Approve deployment'
+              RunOrder: 1
+            - Name: DeployPublicApi
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: '1'
+                Provider: ECS
+              InputArtifacts:
+                - Name: BuildPublicApiOutput
+              OutputArtifacts: []
+              Configuration:
+                ClusterName: !Ref EcsClusterName
+                ServiceName: !Ref BlueProdPublicApiEcsService
+                FileName: imagedefinitions.json
+              RunOrder: 2
+            - Name: DeployChromeExt
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: '1'
+                Provider: CodeBuild
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts: []
+              Configuration:
+                ProjectName: !Ref BlueProdDeployChromeExtProject
+              RunOrder: 3
+        - Name: DeployToGreenProd
+          Actions:
+            - Name: Approval
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Version: '1'
+                Provider: Manual
+              Configuration:
+                CustomData: 'Approve deployment'
+              RunOrder: 1
+            - Name: DeployPublicApi
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: '1'
+                Provider: ECS
+              InputArtifacts:
+                - Name: BuildPublicApiOutput
+              OutputArtifacts: []
+              Configuration:
+                ClusterName: !Ref EcsClusterName
+                ServiceName: !Ref GreenProdPublicApiEcsService
+                FileName: imagedefinitions.json
+              RunOrder: 2
+            - Name: DeployChromeExt
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: '1'
+                Provider: CodeBuild
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts: []
+              Configuration:
+                ProjectName: !Ref GreenProdDeployChromeExtProject
+              RunOrder: 3
+      ArtifactStore:
+        Type: S3
+        Location: !Ref PipelineBucket 
+#Outputs:
+#  PipelineUrl:
+#    Value: !Sub >-
+#      https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
+#    Description: CodePipeline URL

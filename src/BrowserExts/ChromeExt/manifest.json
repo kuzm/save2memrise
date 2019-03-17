@@ -1,0 +1,30 @@
+{
+  "manifest_version": 2,
+
+  "name": "Save to Memrise",
+  "description": "Save a word or phrase from a web page and memorize with Memrise!",
+  "version": "0.0.11",
+  "browser_action": {
+    "default_icon": "s2m_icon_128.png",
+    "default_popup": "popup_with_size.html"
+  },
+  "permissions": [
+    "contextMenus",
+    "cookies",
+    "storage",
+    "*://*.memrise.com/",
+    "*://memrise.com/",
+    "https://save2memrise.com/",
+    "https://*.save2memrise.com/"
+  ],
+  "content_security_policy": "script-src 'self' https://chromeext2.save2memrise.com; object-src 'self' https://chromeext2.save2memrise.com; script-src 'self' https://chromeext.prod-blue.save2memrise.com; object-src 'self' https://chromeext.prod-blue.save2memrise.com; script-src 'self' https://chromeext.prod-green.save2memrise.com; object-src 'self' https://chromeext.prod-green.save2memrise.com",
+  "externally_connectable": {
+    "matches": ["https://*.save2memrise.com/*"]
+  },
+  "background": {
+    "scripts": ["main.js"]
+  },
+  "icons": {
+    "128": "s2m_icon_128.png"
+  }
+}

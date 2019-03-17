@@ -1,0 +1,11 @@
+version: '3'
+services:
+  app:
+    container_name: app
+    build:
+      context: .
+      dockerfile: public.api.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+    ports:
+      - "5001:8080"

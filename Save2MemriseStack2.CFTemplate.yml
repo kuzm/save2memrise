@@ -1,0 +1,309 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Root stack to configure CI/CD 
+Parameters:
+  EcsClusterName:
+    Type: String
+    Description: >
+      Specifies the ECS Cluster Name with which the resources would be
+      associated
+    Default: save2memrise2
+  DomainName:
+    Type: String
+    Default: 'save2memrise.com'
+    Description: The full domain name e.g. www.jevsejev.io
+    AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
+    ConstraintDescription: must be a valid DNS zone name.
+  CloudFrontAcmCertificateArn:
+    Type: String
+    Default: 'arn:aws:acm:us-east-1:321373361512:certificate/7f8ea847-04c6-481b-8a16-d393776da0a5'
+    Description: the Amazon Resource Name (ARN) of an AWS Certificate Manager (ACM) certificate in the *us-east-1* region.
+    AllowedPattern: "arn:aws:acm:.*"
+  ActiveProdEnvironment:
+    Type: String
+    Default: blue
+    AllowedValues:
+      - blue
+      - green
+    Description: Active production environment
+Conditions: 
+  IsGreenProdActive: !Equals [ !Ref ActiveProdEnvironment, green ]
+  IsBlueProdActive: !Equals [ !Ref ActiveProdEnvironment, blue ]
+Resources: 
+  CloudFormationBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: 'save2memrisestack2-cloudformationbucket'
+  CodePipelineStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/save2memrisestack2-cloudformationbucket/Save2MemriseCodePipelineStack2.CFTemplate.yml'
+      TimeoutInMinutes: 60
+      Parameters: 
+        BlueProdChromeExtBucketName: !GetAtt BlueProdDeployableStack.Outputs.ChromeExtBucketName
+        GreenProdChromeExtBucketName: !GetAtt GreenProdDeployableStack.Outputs.ChromeExtBucketName
+        BlueProdChromeExtCloudfrontDistribution: !GetAtt BlueProdDeployableStack.Outputs.ChromeExtCloudfrontDistribution
+        GreenProdChromeExtCloudfrontDistribution: !GetAtt GreenProdDeployableStack.Outputs.ChromeExtCloudfrontDistribution
+        EcsClusterName: !Ref EcsClusterName
+        BlueProdPublicApiEcsService: !GetAtt BlueProdDeployableStack.Outputs.PublicApiEcsService
+        GreenProdPublicApiEcsService: !GetAtt GreenProdDeployableStack.Outputs.PublicApiEcsService
+  BlueProdDeployableStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/save2memrisestack2-cloudformationbucket/Save2MemriseDeployableStack2.CFTemplate.yml'
+      TimeoutInMinutes: 60
+      Parameters:
+        EcsClusterName: !Ref EcsClusterName
+        RootDomainName: !Ref 'DomainName'
+        FullChromeExtDomainName: !Sub 'chromeext.prod-blue.${DomainName}'
+        FullPublicApiDomainName: !Sub 'api.prod-blue.${DomainName}'
+        ChromeExtCloudfrontDistributionAliases: !If 
+          - IsBlueProdActive
+          - !Sub 'chromeext.prod-blue.${DomainName},chromeext2.${DomainName}'
+          - !Sub 'chromeext.prod-blue.${DomainName}'
+        CloudFrontAcmCertificateArn: !Ref CloudFrontAcmCertificateArn
+        LoadBalancerCanonicalHostedZoneID: !GetAtt LoadBalancer2.CanonicalHostedZoneID
+        LoadBalancerDNSName: !GetAtt LoadBalancer2.DNSName
+        PublicApiTaskDefinition: !Ref PublicApiTaskDefinition
+        VpcId: !GetAtt ECSClusterStack.Outputs.VpcId
+        LoadBalancerTargetGroup: !Ref BlueProdLoadBalancerTargetGroup
+        #FIX DependsOn does not support !If
+        CustomDependsOn: !If 
+          - IsBlueProdActive
+          - !GetAtt GreenProdDeployableStack.Outputs.ChromeExtCloudfrontDistribution
+          - ''
+  GreenProdDeployableStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/save2memrisestack2-cloudformationbucket/Save2MemriseDeployableStack2.CFTemplate.yml'
+      TimeoutInMinutes: 60
+      Parameters:
+        EcsClusterName: !Ref EcsClusterName
+        RootDomainName: !Ref 'DomainName'
+        FullChromeExtDomainName: !Sub 'chromeext.prod-green.${DomainName}'
+        FullPublicApiDomainName: !Sub 'api.prod-green.${DomainName}'
+        ChromeExtCloudfrontDistributionAliases: !If 
+          - IsGreenProdActive
+          - !Sub 'chromeext.prod-green.${DomainName},chromeext2.${DomainName}'
+          - !Sub 'chromeext.prod-green.${DomainName}'
+        CloudFrontAcmCertificateArn: !Ref CloudFrontAcmCertificateArn
+        LoadBalancerCanonicalHostedZoneID: !GetAtt LoadBalancer2.CanonicalHostedZoneID
+        LoadBalancerDNSName: !GetAtt LoadBalancer2.DNSName
+        PublicApiTaskDefinition: !Ref PublicApiTaskDefinition
+        VpcId: !GetAtt ECSClusterStack.Outputs.VpcId
+        LoadBalancerTargetGroup: !Ref GreenProdLoadBalancerTargetGroup
+        #FIX DependsOn does not support !If
+        CustomDependsOn: !If 
+          - IsGreenProdActive
+          - !GetAtt BlueProdDeployableStack.Outputs.ChromeExtCloudfrontDistribution
+          - ''
+  ECSClusterStack: 
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/save2memrisestack2-cloudformationbucket/Save2MemriseECSClusterStack2.CFTemplate.yml'
+      TimeoutInMinutes: 60
+      Parameters:
+        EcsClusterName: !Ref EcsClusterName
+        EcsAmiId: ami-9fc39c74
+        EcsInstanceType: t2.micro
+        KeyName: save2memrise
+        VpcId: ''
+        SubnetIds: ''
+        SecurityGroupId: ''
+        VpcCidr: '10.0.0.0/16'
+        SubnetCidr1: '10.0.0.0/24'
+        SubnetCidr2: '10.0.1.0/24'
+        SubnetCidr3: ''
+        AsgMaxSize: 3
+        IamRoleInstanceProfile: 'arn:aws:iam::321373361512:instance-profile/ecsInstanceRole'
+        SecurityIngressFromPort: 80
+        SecurityIngressToPort: 80
+        SecurityIngressCidrIp: '0.0.0.0/0'
+        EcsEndpoint: ''
+        VpcAvailabilityZones: 'eu-central-1a,eu-central-1c,eu-central-1b'
+        EbsVolumeSize: 22
+        EbsVolumeType: gp2
+        DeviceName: '/dev/xvdcz'
+        UseSpot: 'false'
+        IamSpotFleetRoleArn: ''
+        SpotPrice: ''
+        SpotAllocationStrategy: 'diversified'
+        UserData: |
+          #!/bin/bash
+          echo ECS_CLUSTER=save2memrise2 >> /etc/ecs/ecs.config;echo ECS_BACKEND_HOST= >> /etc/ecs/ecs.config;
+        IsWindows: 'false'
+  ELBAcmCertificate: 
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: 'save2memrise.com'
+      SubjectAlternativeNames:
+        - '*.save2memrise.com'
+        - '*.prod-blue.save2memrise.com'
+        - '*.prod-green.save2memrise.com'
+      DomainValidationOptions:
+        - DomainName: save2memrise.com
+          ValidationDomain: save2memrise.com
+  LoadBalancer2: 
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: LoadBalancer2
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '30'
+      Subnets: [ !GetAtt ECSClusterStack.Outputs.PubSubnetAz1, !GetAtt ECSClusterStack.Outputs.PubSubnetAz2 ]
+      SecurityGroups: [ !Ref 'LoadBalancerSecurityGruop' ]
+  ProdChromeExtDNSName:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Join ['', [!Ref DomainName, .]]
+      RecordSets:
+      - Name: !Join ['.', ['chromeext2', !Ref DomainName]]
+        Type: A
+        AliasTarget:
+          # The hosted zone ID. For load balancers, use the canonical hosted zone ID of the load balancer. 
+          # For Amazon S3, use the hosted zone ID for your bucket's website endpoint. 
+          # For CloudFront, use Z2FDTNDATAQYW2.
+          HostedZoneId: Z2FDTNDATAQYW2
+          DNSName: !If 
+            - IsGreenProdActive
+            - !GetAtt GreenProdDeployableStack.Outputs.ChromeExtCloudfrontDistributionDomainName
+            - !GetAtt BlueProdDeployableStack.Outputs.ChromeExtCloudfrontDistributionDomainName
+  ProdPublicApiExtDNSName:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Join ['', [!Ref DomainName, .]]
+      RecordSets:
+      - Name: !Join ['.', ['api2', !Ref DomainName]]
+        Type: A
+        AliasTarget:
+          HostedZoneId: !GetAtt LoadBalancer2.CanonicalHostedZoneID 
+          DNSName: !GetAtt LoadBalancer2.DNSName
+  LoadBalancerSecurityGruop: 
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Security group for Load Balancer
+      VpcId: !GetAtt ECSClusterStack.Outputs.VpcId
+  LoadBalancerSecurityGroupIngress:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref 'LoadBalancerSecurityGruop'
+      IpProtocol: tcp
+      FromPort: '443'
+      ToPort: '443'
+      CidrIp: 0.0.0.0/0
+  LoadBalancerSecurityGroupEgress:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      GroupId: !Ref 'LoadBalancerSecurityGruop'
+      IpProtocol: '-1'
+      CidrIp: 0.0.0.0/0
+  LoadBalancerListener3:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: text/plain
+            MessageBody: Resource Not Found
+            StatusCode: 404
+      LoadBalancerArn: !Ref LoadBalancer2
+      Port: '443'
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref ELBAcmCertificate
+  BlueProdLoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: '/_system/health'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Name: 's2m-prod-blue-api'
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !GetAtt ECSClusterStack.Outputs.VpcId
+  GreenProdLoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: '/_system/health'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Name: 's2m-prod-green-api'
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !GetAtt ECSClusterStack.Outputs.VpcId
+  BlueProdLoadBalancerListenerRule: 
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions: 
+        - Type: forward
+          TargetGroupArn: !Ref BlueProdLoadBalancerTargetGroup
+      Conditions:
+        - Field: host-header
+          Values: [ 'api.prod-blue.save2memrise.com' ]
+      ListenerArn: !Ref LoadBalancerListener3
+      Priority: 2
+  GreenProdLoadBalancerListenerRule: 
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions: 
+        - Type: forward
+          TargetGroupArn: !Ref GreenProdLoadBalancerTargetGroup
+      Conditions:
+        - Field: host-header
+          Values: [ 'api.prod-green.save2memrise.com' ]
+      ListenerArn: !Ref LoadBalancerListener3
+      Priority: 3
+  ProdLoadBalancerListenerRule: 
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions: 
+        - Type: forward
+          TargetGroupArn: !If 
+            - IsGreenProdActive
+            - !Ref GreenProdLoadBalancerTargetGroup
+            - !Ref BlueProdLoadBalancerTargetGroup
+      Conditions:
+        - Field: host-header
+          Values: [ 'api2.save2memrise.com' ]
+      ListenerArn: !Ref LoadBalancerListener3
+      Priority: 4
+  PublicApiTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      Family: !Sub '${AWS::StackName}-PublicApiTask'
+      ExecutionRoleArn: ''
+      ContainerDefinitions:
+        - Name: public-api
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: save2memrise
+              awslogs-region: eu-central-1
+              awslogs-stream-prefix: public-api
+          PortMappings:
+            - HostPort: 80
+              Protocol: tcp
+              ContainerPort: 8080
+          Cpu: 0
+          Environment: []
+          MountPoints: []
+          Memory: 300
+          VolumesFrom: []
+          Image: '321373361512.dkr.ecr.eu-central-1.amazonaws.com/save2memrise:latest'
+          Essential: true
+      TaskRoleArn: 'arn:aws:iam::321373361512:role/DeployToECSTaskRole'
+      RequiresCompatibilities: []
+      Volumes: []
+      PlacementConstraints: []
+#Outputs:
+  #PipelineUrl:
+  #  Value: !GetAtt CodePipelineStack.Outputs.PipelineUrl
+  #  Description: CodePipeline URL
