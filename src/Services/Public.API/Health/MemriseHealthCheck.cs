@@ -19,7 +19,7 @@ namespace Save2Memrise.Services.Public.API
             try 
             {
                 var httpClient = new HttpClient();
-                var response = await httpClient.GetAsync("https://www.memrise.com");
+                var response = await httpClient.GetAsync("https://decks.memrise.com");
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
                     return HealthCheckResult.Healthy();

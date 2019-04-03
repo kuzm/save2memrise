@@ -19,7 +19,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
     public sealed class WebsiteClient
     {
         public static readonly int CourseLimitOnDashboard = 7;
-        public static readonly Uri BaseAddress = new Uri("https://www.memrise.com");
+        public static readonly Uri BaseAddress = new Uri("https://decks.memrise.com");
         
         private static readonly IDictionary<int, (string Short, string Long)> _termLangs = new Dictionary<int, (string, string)>()
             {

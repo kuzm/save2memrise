@@ -1,6 +1,6 @@
 # Save to Memrise
 
-This unofficial extension allows you to add a word or phrase to your Memrise in a few clicks. You can add a selection from a web page or type in a word directly. The extension creates a course with saved words that you can then practice on https://memrise.com.
+This unofficial extension allows you to add a word or phrase to your Memrise in a few clicks. You can add a selection from a web page or type in a word directly. The extension creates a course with saved words that you can then practice on https://decks.memrise.com.
 
 To install this extension to your Chrome browser, [go to Chrome Web Store](https://chrome.google.com/webstore/detail/save-to-memrise/jedpoleopoehklpioonelookacalmcfk). 
 
@@ -223,7 +223,7 @@ To publish the extension to the world, you need to re-publish with other visibil
 
 Sniff traffic of the Memrise mobile app with Packet Capture app on your Android device. Capture app produces *.pcap files that can be stored in `Download` folder of your Android device. If you can't see these files when browsing your device's files with Android File Transfer from your Mac via MTP, rebuild your device's SD index. To rescan your SD, use SD Card Scanner Pro app from Google Play. 
 
-*Update*: Sniff traffic from memrise.com by using Developer tools in Chrome. Memrise REST API is no longer used. 
+*Update*: Sniff traffic from decks.memrise.com by using Developer tools in Chrome. Memrise REST API is no longer used. 
 
 # Troubleshooting
 
