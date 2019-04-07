@@ -2,8 +2,7 @@ FROM microsoft/dotnet:2.1-sdk-alpine3.7 AS build-env
 
 WORKDIR /app
 
-# Copy everything else and build
-COPY . ./
+COPY src/Services/Public.API ./src/Services/Public.API
 
 WORKDIR /app/src/Services/Public.API
 RUN dotnet publish -c Release -o out
@@ -16,5 +15,4 @@ ENV SAVE2MEMRISE_AppVersion=$APP_VERSION
 WORKDIR /app
 EXPOSE 8080
 COPY --from=build-env /app/src/Services/Public.API/out .
-# RUN rm appsettings.Development.json
 ENTRYPOINT ["dotnet", "Public.API.dll"]

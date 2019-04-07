@@ -1,10 +1,10 @@
 version: '3'
 services:
-  app:
-    container_name: app
+  public-api:
+    container_name: s2m-public-api
     build:
       context: .
-      dockerfile: public.api.Dockerfile
+      dockerfile: src/Services/Public.API/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
     ports:

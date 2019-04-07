@@ -15,7 +15,7 @@ phases:
       - $DOCKER_RUN ./build.sh --target=UnitTest
       - echo Building the Docker image...
       - export IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
-      - docker build --build-arg APP_VERSION=$IMAGE_TAG --tag $IMAGE_REPO_NAME:$IMAGE_TAG --file public.api.Dockerfile .
+      - docker build --build-arg APP_VERSION=$IMAGE_TAG --tag $IMAGE_REPO_NAME:$IMAGE_TAG --file src/Services/Public.API/Dockerfile .
       - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
       - echo Build completed on `date`
       - echo Pushing the Docker image...
