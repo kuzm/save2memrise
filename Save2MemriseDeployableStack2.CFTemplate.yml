@@ -35,10 +35,6 @@ Parameters:
     Type: Number
     Default: '1'
     Description: Number of instances to launch in your ECS cluster.
-  InstanceType:
-    Type: String
-    Default: t2.micro
-    Description: EC2 instance type //TODO not used
   LoadBalancerCanonicalHostedZoneID:
     Type: String
   LoadBalancerDNSName:
