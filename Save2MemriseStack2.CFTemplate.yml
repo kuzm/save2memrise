@@ -5,9 +5,6 @@ Parameters:
   GitHubOwner:
     Type: String
     Default: 'kuzm'
-  GitHubSecret:
-    Type: String
-    NoEcho: true
   GitHubOAuthToken:
     Type: String
     NoEcho: true
@@ -51,7 +48,6 @@ Resources:
       TimeoutInMinutes: 60
       Parameters: 
         GitHubOwner: !Ref GitHubOwner
-        GitHubSecret: !Ref GitHubSecret
         GitHubOAuthToken: !Ref GitHubOAuthToken
         BlueProdChromeExtBucketName: !GetAtt BlueProdDeployableStack.Outputs.ChromeExtBucketName
         GreenProdChromeExtBucketName: !GetAtt GreenProdDeployableStack.Outputs.ChromeExtBucketName

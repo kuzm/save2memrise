@@ -5,9 +5,6 @@ Description: >-
 Parameters:
   GitHubOwner:
     Type: String
-  GitHubSecret:
-    Type: String
-    NoEcho: true
   GitHubOAuthToken:
     Type: String
     NoEcho: true
@@ -38,7 +35,7 @@ Resources:
     Properties:
       Authentication: GITHUB_HMAC
       AuthenticationConfiguration:
-        SecretToken: !Ref GitHubSecret
+        SecretToken: !Ref GitHubOAuthToken
       Filters:
         - 
           JsonPath: "$.ref"
