@@ -81,7 +81,7 @@ Make sure that your chrome extension is configured for localhost:
 - Adjust settings to localhost in `src/BrowserExts/ChromeExt/config.js`.
 - Allow localhost in `src/BrowserExts/ChromeExt/manifest.json` by adding `"*://localhost/"` in `permissions` section. 
 
-Then follow instructions below:
+When starting from scratch, follow instructions below:
 
 1. Install Node.js
 2. Install Gulp
@@ -92,9 +92,12 @@ npm install semantic-ui --save
 cd semantic/
 gulp build
 ```
-
 5. `gulp` or `gulp browserify`
 
+For the regular build, run:
+```
+./build.sh --target=BuildChromeExt
+```
 
 ## Services
 

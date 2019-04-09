@@ -4,7 +4,9 @@ phases:
   build:
     commands:
       - echo Build started on `date`
+      - echo $ENVIRONMENT
       - echo CODEBUILD_RESOLVED_SOURCE_VERSION=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - $CODEBUILD_RESOLVED_SOURCE_VERSION > version-matadata.txt
       - cd src/BrowserExts/ChromeExt
       - cp config.$ENVIRONMENT.js config.js
       - export DOCKER_RUN="docker run -v $PWD:/app -w /app node:9"

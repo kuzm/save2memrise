@@ -3,6 +3,7 @@ window.jQuery = $; // Assure it's available globally.
 var s = require('./semantic/dist/semantic.min.js');
 var cookie = require('js-cookie');
 var cfg = require('./config.js');
+var version = require('./version.json');
 
 var _storedValues = {};
 

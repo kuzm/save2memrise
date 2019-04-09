@@ -12,6 +12,45 @@ Task("Build")
     DotNetCoreBuild(".");
 });
 
+Task("BuildChromeExt")
+    .Does(() =>
+{
+    Information("Running `npm install`...");
+    var exitCode = StartProcess("npm", 
+        new ProcessSettings 
+        { 
+            WorkingDirectory = "src/BrowserExts/ChromeExt",
+            Arguments = "install"
+        });
+    if (exitCode != 0)
+    {
+        throw new Exception($"Exit code: {exitCode}");
+    }
+
+    Information("Running `npm install --global gulp`...");
+    exitCode = StartProcess("npm", 
+        new ProcessSettings 
+        { 
+            WorkingDirectory = "src/BrowserExts/ChromeExt",
+            Arguments = "install --global gulp"
+        });
+    if (exitCode != 0)
+    {
+        throw new Exception($"Exit code: {exitCode}");
+    }
+
+    Information("Running `gulp`...");
+    exitCode = StartProcess("gulp", 
+        new ProcessSettings 
+        { 
+            WorkingDirectory = "src/BrowserExts/ChromeExt"
+        });
+    if (exitCode != 0)
+    {
+        throw new Exception($"Exit code: {exitCode}");
+    }
+});
+
 Task("UnitTest")
     .IsDependentOn("Build")
     .Does(() =>
