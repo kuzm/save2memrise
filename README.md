@@ -222,6 +222,15 @@ The extension is published at https://chrome.google.com/webstore/detail/save-to-
 
 To publish the extension to the world, you need to re-publish with other visibility options.
 
+### Switch between Green and Blue production environments
+
+To make Green or Blue active environment, update CloudFormation stack:
+1. Go to `Save2MemriseStack2.CFTemplate.yml` and set `ActiveProdEnvironment` parameter to `blue` or `green`. Alternatively, you can specify `ActiveProdEnvironment` parameter as command line argument. 
+2. Follow instructions in _Update CloudFormation stack in AWS_ section above to apply changes to AWS. 
+3. To verify in AWS Console, that traffic was switched successfully: 
+3.1. Go to EC2 > Load Balancers > Listeners > Rules. Default routing should forward traffic to the selected environment. 
+3.2. Go to Route 53 > Hosted Zones and CloudFront > Distributions and check that `chromeext2.save2memrise.com` is mapped to the proper distribution. 
+
 # Investigate Memrise API 
 
 Sniff traffic of the Memrise mobile app with Packet Capture app on your Android device. Capture app produces *.pcap files that can be stored in `Download` folder of your Android device. If you can't see these files when browsing your device's files with Android File Transfer from your Mac via MTP, rebuild your device's SD index. To rescan your SD, use SD Card Scanner Pro app from Google Play. 
