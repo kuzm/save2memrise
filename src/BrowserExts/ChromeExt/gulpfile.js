@@ -19,7 +19,7 @@ gulp.task('version', function () {
     let version = fs.readFileSync('../../../version.txt', 'utf8');
     let versionMetadata = fs.readFileSync('../../../version-metadata.txt');
     let fullVersion = version;
-    if (versionMetadata) 
+    if (versionMetadata && versionMetadata != '') 
         fullVersion = version + '-' + versionMetadata;
 
     var versionJson = `{ "base": "${version}", "metadata": "${versionMetadata}", "full": "${fullVersion}" }`;

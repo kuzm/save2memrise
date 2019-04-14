@@ -67,6 +67,8 @@ Resources:
             Value: 321373361512
           - Name: IMAGE_REPO_NAME
             Value: save2memrise
+          - Name: ENVIRONMENT
+            Value: prod
       Source:
         Type: CODEPIPELINE
         BuildSpec: public-api-buildspec.yml

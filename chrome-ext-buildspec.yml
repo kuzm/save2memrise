@@ -3,20 +3,13 @@ version: 0.2
 phases:
   build:
     commands:
-      - echo Build started on `date`
-      - echo $ENVIRONMENT
-      - echo CODEBUILD_RESOLVED_SOURCE_VERSION=$CODEBUILD_RESOLVED_SOURCE_VERSION
-      - $CODEBUILD_RESOLVED_SOURCE_VERSION > version-matadata.txt
-      - cd src/BrowserExts/ChromeExt
-      - cp config.$ENVIRONMENT.js config.js
-      - export DOCKER_RUN="docker run -v $PWD:/app -w /app node:9"
-      - echo Run npm install...
-      - $DOCKER_RUN npm install
-      - echo Build app...
-      - $DOCKER_RUN /bin/bash -c "npm install --global gulp && gulp"
-      - echo $CODEBUILD_RESOLVED_SOURCE_VERSION > ./build/version
+      - docker build --file build.Dockerfile --tag s2m-build .
+      - export DOCKER_RUN="docker run -v $PWD:/app -w /app s2m-build"
+      - chmod +x ./build.sh
+      - $DOCKER_RUN ./build.sh --target=BuildChromeExt --env=$ENVIRONMENT --version-metadata=$CODEBUILD_RESOLVED_SOURCE_VERSION
   post_build:
     commands:
+      - cd src/BrowserExts/ChromeExt
       - echo Pushing $PWD/build to S3...
       - aws s3 cp --recursive --acl public-read ./build/ s3://$S3_BUCKET_NAME/ 
       - aws cloudfront create-invalidation --distribution-id $CDN_DISTRIBUTION_ID --paths "/*"
