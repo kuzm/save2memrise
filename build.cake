@@ -1,6 +1,9 @@
 var target = Argument("target", "Default");
 var env = Argument("env", "local");
 var versionMetadata = Argument("version-metadata", "");
+var imageRepoName = Argument("image-repo-name", "");
+var awsRegion = Argument("aws-region", "");
+var awsAccountId = Argument("aws-account-id", "");
 
 Information($"env: {env}");
 if (env != "local" && env != "prod" && env != "prod-blue" && env != "prod-green")
@@ -8,19 +11,41 @@ if (env != "local" && env != "prod" && env != "prod-blue" && env != "prod-green"
     throw new ArgumentException(nameof(env));
 }
 
+class Version
+{
+    public readonly string Base;
+    public readonly string Metadata;
+    public readonly string FullVersion;
+
+    public Version(string versionBase, string metadata)
+    {
+        Base = !string.IsNullOrEmpty(versionBase) ? versionBase : throw new ArgumentException(nameof(versionBase));
+        Metadata = metadata;
+
+        FullVersion = string.IsNullOrEmpty(Metadata)
+            ? Base
+            : $"{Base}-{Metadata}";
+    }
+}
+Version version;
+
 Task("Default")
     .IsDependentOn("Build")
     .Does(() =>
     {
     });
 
-Task("WriteVersionMetadata")
+Task("ConfigureVersion")
     .Does(() => 
     {
         System.IO.File.WriteAllText("version-metadata.txt", versionMetadata);
+        var versionBase = System.IO.File.ReadAllText("version.txt").Trim();
+        version = new Version(versionBase, versionMetadata);
+        Information($"Full version: {version.FullVersion}");
     });
 
 Task("Build")
+    .IsDependentOn("ConfigureVersion")
     .IsDependentOn("BuildPublicApi")
     .IsDependentOn("BuildChromeExt")
     .Does(() =>
@@ -28,14 +53,14 @@ Task("Build")
     });
 
 Task("BuildPublicApi")
-    .IsDependentOn("WriteVersionMetadata")
+    .IsDependentOn("ConfigureVersion")
     .Does(() =>
     {
         DotNetCoreBuild(".");
     });
 
 Task("BuildChromeExt")
-    .IsDependentOn("WriteVersionMetadata")
+    .IsDependentOn("ConfigureVersion")
     .Does(() =>
     {
         var basePath = "src/BrowserExts/ChromeExt";
@@ -103,8 +128,100 @@ Task("IntegrationTest")
 Task("Test")
     .IsDependentOn("UnitTest")
     .IsDependentOn("IntegrationTest")
-  .Does(() =>
+    .Does(() =>
     {
     });
+
+Task("LoginToECR")
+    .Does(() =>
+    {
+        var basePath = ".";
+        if (string.IsNullOrEmpty(awsRegion))
+            throw new InvalidOperationException(nameof(awsRegion));
+        
+        Information("Running `aws ecr get-login`...");
+        var exitCode = StartProcess("sh", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = basePath,
+                Arguments = new ProcessArgumentBuilder()
+                    .Append("-c")
+                    .AppendQuoted($"$(aws ecr get-login --no-include-email --region {awsRegion})")
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+    });
+
+Task("DockerBuild")
+    .IsDependentOn("LoginToECR")
+    .IsDependentOn("BuildPublicApi")
+    .Does(() =>
+    {
+        if (string.IsNullOrEmpty(imageRepoName))
+            throw new ArgumentException(nameof(imageRepoName)); 
+
+        var basePath = ".";
+        
+        Information("Running `docker build`...");
+        var exitCode = StartProcess("docker", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = basePath,
+                Arguments = $"build --build-arg APP_VERSION={version.FullVersion} --tag {imageRepoName}:{version.FullVersion} --file src/Services/Public.API/Dockerfile ."
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+    });
+
+Task("DockerPush")
+    .IsDependentOn("DockerBuild")
+    .Does(() =>
+    {
+        var basePath = ".";
+        if (string.IsNullOrEmpty(imageRepoName))
+            throw new ArgumentException(nameof(imageRepoName)); 
+        if (string.IsNullOrEmpty(awsRegion))
+            throw new ArgumentException(nameof(awsRegion)); 
+        if (string.IsNullOrEmpty(awsAccountId))
+            throw new ArgumentException(nameof(awsAccountId)); 
+
+        Information("Running `docker tag`...");
+        var exitCode = StartProcess("docker", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = basePath,
+                Arguments = $"tag {imageRepoName}:{version.FullVersion} {awsAccountId}.dkr.ecr.{awsRegion}.amazonaws.com/{imageRepoName}:{version.FullVersion}"
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+
+
+        Information("Running `docker push`...");
+        exitCode = StartProcess("docker", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = basePath,
+                Arguments = $"push {awsAccountId}.dkr.ecr.{awsRegion}.amazonaws.com/{imageRepoName}:{version.FullVersion}"
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+
+        var imagedefinitionsJson = $"[{{\"name\":\"public-api\",\"imageUri\":\"{awsAccountId}.dkr.ecr.{awsRegion}.amazonaws.com/{imageRepoName}:{version.FullVersion}\"}}]";
+        System.IO.File.WriteAllText("imagedefinitions.json", imagedefinitionsJson);
+    });
+
+Task("DeployPublicApi")
+    .IsDependentOn("UnitTest")
+    .IsDependentOn("DockerPush")
+    .Does(() =>
+    {});
 
 RunTarget(target);
