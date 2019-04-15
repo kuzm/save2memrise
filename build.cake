@@ -1,7 +1,6 @@
 var target = Argument("target", "Default");
 var env = Argument("env", "local");
 var versionMetadata = Argument("version-metadata", "");
-var imageRepoName = Argument("image-repo-name", "");
 var awsRegion = Argument("aws-region", "");
 var awsAccountId = Argument("aws-account-id", "");
 
@@ -154,21 +153,17 @@ Task("LoginToECR")
         }
     });
 
-Task("DockerBuild")
-    .IsDependentOn("LoginToECR")
+Task("BuildPublicApiDockerImage")
     .IsDependentOn("BuildPublicApi")
     .Does(() =>
     {
-        if (string.IsNullOrEmpty(imageRepoName))
-            throw new ArgumentException(nameof(imageRepoName)); 
-
-        var basePath = ".";
+        var imageRepoName = "save2memrise";
         
         Information("Running `docker build`...");
         var exitCode = StartProcess("docker", 
             new ProcessSettings 
             { 
-                WorkingDirectory = basePath,
+                WorkingDirectory = ".",
                 Arguments = $"build --build-arg APP_VERSION={version.FullVersion} --tag {imageRepoName}:{version.FullVersion} --file src/Services/Public.API/Dockerfile ."
             });
         if (exitCode != 0)
@@ -177,23 +172,23 @@ Task("DockerBuild")
         }
     });
 
-Task("DockerPush")
-    .IsDependentOn("DockerBuild")
+Task("PushPublicApiDockerImage")
+    .IsDependentOn("LoginToECR")
+    .IsDependentOn("BuildPublicApiDockerImage")
     .Does(() =>
     {
-        var basePath = ".";
-        if (string.IsNullOrEmpty(imageRepoName))
-            throw new ArgumentException(nameof(imageRepoName)); 
         if (string.IsNullOrEmpty(awsRegion))
             throw new ArgumentException(nameof(awsRegion)); 
         if (string.IsNullOrEmpty(awsAccountId))
             throw new ArgumentException(nameof(awsAccountId)); 
 
+        var imageRepoName = "save2memrise";
+
         Information("Running `docker tag`...");
         var exitCode = StartProcess("docker", 
             new ProcessSettings 
             { 
-                WorkingDirectory = basePath,
+                WorkingDirectory = ".",
                 Arguments = $"tag {imageRepoName}:{version.FullVersion} {awsAccountId}.dkr.ecr.{awsRegion}.amazonaws.com/{imageRepoName}:{version.FullVersion}"
             });
         if (exitCode != 0)
@@ -206,7 +201,7 @@ Task("DockerPush")
         exitCode = StartProcess("docker", 
             new ProcessSettings 
             { 
-                WorkingDirectory = basePath,
+                WorkingDirectory = ".",
                 Arguments = $"push {awsAccountId}.dkr.ecr.{awsRegion}.amazonaws.com/{imageRepoName}:{version.FullVersion}"
             });
         if (exitCode != 0)
@@ -220,8 +215,64 @@ Task("DockerPush")
 
 Task("DeployPublicApi")
     .IsDependentOn("UnitTest")
-    .IsDependentOn("DockerPush")
+    .IsDependentOn("PushPublicApiDockerImage")
     .Does(() =>
     {});
+
+Task("BuildBuilderDockerImage")
+    .IsDependentOn("ConfigureVersion")
+    .Does(() =>
+    {
+        var imageRepoName = "save2memrise/build";
+
+        Information("Running `docker build`...");
+        var exitCode = StartProcess("docker", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = ".",
+                Arguments = $"build --file build.Dockerfile --tag {imageRepoName}:{version.FullVersion} ."
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+    });
+
+Task("PushBuilderDockerImage")
+    .IsDependentOn("LoginToECR")
+    .IsDependentOn("BuildBuilderDockerImage")
+    .Does(() =>
+    {
+        if (string.IsNullOrEmpty(awsRegion))
+            throw new ArgumentException(nameof(awsRegion)); 
+        if (string.IsNullOrEmpty(awsAccountId))
+            throw new ArgumentException(nameof(awsAccountId)); 
+
+        var imageRepoName = "save2memrise/build";
+
+        Information("Running `docker tag`...");
+        var exitCode = StartProcess("docker", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = ".",
+                Arguments = $"tag {imageRepoName}:{version.FullVersion} {awsAccountId}.dkr.ecr.{awsRegion}.amazonaws.com/{imageRepoName}:{version.FullVersion}"
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+
+        Information("Running `docker push`...");
+        exitCode = StartProcess("docker", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = ".",
+                Arguments = $"push {awsAccountId}.dkr.ecr.{awsRegion}.amazonaws.com/{imageRepoName}:{version.FullVersion}"
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+    });
 
 RunTarget(target);

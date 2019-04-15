@@ -41,6 +41,14 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       BucketName: 'save2memrisestack2-cloudformationbucket'
+  BuildEcrRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: "save2memrise/build"
+  PublicApiEcrRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: "save2memrise/public-api"
   CodePipelineStack:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
