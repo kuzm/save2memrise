@@ -4,6 +4,7 @@ phases:
   build:
     commands:
       - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/save2memrise/build:0.1.0
       - export DOCKER_RUN="docker run -v $PWD:/app -v $HOME/.aws:/root/.aws -v /var/run/docker.sock:/var/run/docker.sock -w /app -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/save2memrise/build:0.1.0"
       - chmod +x ./build.sh
       - $DOCKER_RUN ./build.sh --target=DeployPublicApi --env=$ENVIRONMENT --version-metadata=$CODEBUILD_RESOLVED_SOURCE_VERSION --image-repo-name=$IMAGE_REPO_NAME --aws-region=$AWS_DEFAULT_REGION --aws-account-id=$AWS_ACCOUNT_ID
