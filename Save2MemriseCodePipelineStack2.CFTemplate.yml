@@ -58,8 +58,9 @@ Resources:
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: 'aws/codebuild/docker:17.09.0'
+        Image: '321373361512.dkr.ecr.eu-central-1.amazonaws.com/save2memrise/build:0.1.0'
         PrivilegedMode: true
+        ImagePullCredentialsType: SERVICE_ROLE
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
             Value: eu-central-1
@@ -86,8 +87,9 @@ Resources:
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: 'aws/codebuild/docker:17.09.0'
+        Image: '321373361512.dkr.ecr.eu-central-1.amazonaws.com/save2memrise/build:0.1.0'
         PrivilegedMode: true
+        ImagePullCredentialsType: SERVICE_ROLE
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
             Value: eu-central-1
@@ -118,8 +120,9 @@ Resources:
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: 'aws/codebuild/docker:17.09.0'
+        Image: '321373361512.dkr.ecr.eu-central-1.amazonaws.com/save2memrise/build:0.1.0'
         PrivilegedMode: true
+        ImagePullCredentialsType: SERVICE_ROLE
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
             Value: eu-central-1

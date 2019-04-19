@@ -3,12 +3,10 @@ version: 0.2
 phases:
   build:
     commands:
-      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
-      - export BUILD_IMAGE=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/save2memrise/build:0.1.0
-      - docker pull $BUILD_IMAGE
-      - export DOCKER_RUN="docker run --net=host -v $PWD:/app -v /var/run/docker.sock:/var/run/docker.sock -w /app $BUILD_IMAGE"
+      - chmod +x ./dockerd-entrypoint.sh
+      - ./dockerd-entrypoint.sh
       - chmod +x ./build.sh
-      - $DOCKER_RUN ./build.sh --target=DeployPublicApi --env=$ENVIRONMENT --version-metadata=$CODEBUILD_RESOLVED_SOURCE_VERSION --image-repo-name=$IMAGE_REPO_NAME --aws-region=$AWS_DEFAULT_REGION --aws-account-id=$AWS_ACCOUNT_ID
+      - ./build.sh --target=DeployPublicApi --env=$ENVIRONMENT --version-metadata=$CODEBUILD_RESOLVED_SOURCE_VERSION --image-repo-name=$IMAGE_REPO_NAME --aws-region=$AWS_DEFAULT_REGION --aws-account-id=$AWS_ACCOUNT_ID
 artifacts:
   files:
     - imagedefinitions.json
