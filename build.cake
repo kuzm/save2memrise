@@ -3,6 +3,8 @@ var env = Argument("env", "local");
 var versionMetadata = Argument("version-metadata", "");
 var awsRegion = Argument("aws-region", "");
 var awsAccountId = Argument("aws-account-id", "");
+var webS3Bucket = Argument("web-s3-bucket", "");
+var cdnDistributionId = Argument("cdn-distribution-id", "");
 
 Information($"env: {env}");
 if (env != "local" && env != "prod" && env != "prod-blue" && env != "prod-green")
@@ -134,7 +136,6 @@ Task("Test")
 Task("LoginToECR")
     .Does(() =>
     {
-        var basePath = ".";
         if (string.IsNullOrEmpty(awsRegion))
             throw new InvalidOperationException(nameof(awsRegion));
         
@@ -142,7 +143,7 @@ Task("LoginToECR")
         var exitCode = StartProcess("sh", 
             new ProcessSettings 
             { 
-                WorkingDirectory = basePath,
+                WorkingDirectory = ".",
                 Arguments = new ProcessArgumentBuilder()
                     .Append("-c")
                     .AppendQuoted($"$(aws ecr get-login --no-include-email --region {awsRegion})")
@@ -218,6 +219,53 @@ Task("DeployPublicApi")
     .IsDependentOn("PushPublicApiDockerImage")
     .Does(() =>
     {});
+
+Task("PushChromeExtFrameToS3")
+    .IsDependentOn("BuildChromeExt")
+    .Does(() =>
+    {
+        if (string.IsNullOrEmpty(webS3Bucket))
+            throw new InvalidOperationException(nameof(webS3Bucket));
+        
+        Information("Running `aws s3 cp`...");
+        var exitCode = StartProcess("aws", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = "src/BrowserExts/ChromeExt",
+                Arguments = $"s3 cp --recursive --acl public-read ./build/ s3://{webS3Bucket}/"
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+    });
+
+Task("InvalidateCloudFrontCache")
+    .Does(() =>
+    {
+        if (string.IsNullOrEmpty(cdnDistributionId))
+            throw new InvalidOperationException(nameof(cdnDistributionId));
+        
+        Information("Running `aws cloudfront create-invalidation`...");
+        var exitCode = StartProcess("aws", 
+            new ProcessSettings 
+            { 
+                WorkingDirectory = ".",
+                Arguments = $"cloudfront create-invalidation --distribution-id {cdnDistributionId} --paths \"/*\""
+            });
+        if (exitCode != 0)
+        {
+            throw new Exception($"Exit code: {exitCode}");
+        }
+    }); 
+
+Task("DeployChromeExtFrame")
+    .IsDependentOn("BuildChromeExt")
+    .IsDependentOn("PushChromeExtFrameToS3")
+    .IsDependentOn("InvalidateCloudFrontCache")
+    .Does(() =>
+    {});
+
 
 Task("BuildBuilderDockerImage")
     .IsDependentOn("ConfigureVersion")

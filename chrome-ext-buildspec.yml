@@ -3,13 +3,5 @@ version: 0.2
 phases:
   build:
     commands:
-      - docker build --file build.Dockerfile --tag s2m-build .
-      - export DOCKER_RUN="docker run -v $PWD:/app -w /app s2m-build"
       - chmod +x ./build.sh
-      - $DOCKER_RUN ./build.sh --target=BuildChromeExt --env=$ENVIRONMENT --version-metadata=$CODEBUILD_RESOLVED_SOURCE_VERSION
-  post_build:
-    commands:
-      - cd src/BrowserExts/ChromeExt
-      - echo Pushing $PWD/build to S3...
-      - aws s3 cp --recursive --acl public-read ./build/ s3://$S3_BUCKET_NAME/ 
-      - aws cloudfront create-invalidation --distribution-id $CDN_DISTRIBUTION_ID --paths "/*"
+      - ./build.sh --target=DeployChromeExtFrame --env=$ENVIRONMENT --version-metadata=$CODEBUILD_RESOLVED_SOURCE_VERSION --aws-region=$AWS_DEFAULT_REGION --aws-account-id=$AWS_ACCOUNT_ID --web-s3-bucket=$S3_BUCKET_NAME --cdn-distribution-id=$CDN_DISTRIBUTION_ID 
