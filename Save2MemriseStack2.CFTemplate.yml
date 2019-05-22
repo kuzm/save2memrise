@@ -133,8 +133,8 @@ Resources:
         SubnetCidr3: ''
         AsgMaxSize: 3
         IamRoleInstanceProfile: 'arn:aws:iam::321373361512:instance-profile/ecsInstanceRole'
-        SecurityIngressFromPort: 80
-        SecurityIngressToPort: 80
+        SecurityIngressFromPort: 32768
+        SecurityIngressToPort: 65535
         SecurityIngressCidrIp: '0.0.0.0/0'
         EcsEndpoint: ''
         VpcAvailabilityZones: 'eu-central-1a,eu-central-1c,eu-central-1b'
@@ -234,6 +234,7 @@ Resources:
     Properties:
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: '/_system/health'
+      HealthCheckPort: traffic-port
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
@@ -247,6 +248,7 @@ Resources:
     Properties:
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: '/_system/health'
+      HealthCheckPort: traffic-port
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
@@ -305,7 +307,7 @@ Resources:
               awslogs-region: eu-central-1
               awslogs-stream-prefix: public-api
           PortMappings:
-            - HostPort: 80
+            - HostPort: 0
               Protocol: tcp
               ContainerPort: 8080
           Cpu: 0
