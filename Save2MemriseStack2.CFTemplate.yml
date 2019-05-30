@@ -8,6 +8,7 @@ Parameters:
   GitHubOAuthToken:
     Type: String
     NoEcho: true
+    Default: '{{resolve:secretsmanager:S2MPipeline:SecretString:GitHubAuthToken}}'
   EcsClusterName:
     Type: String
     Description: >
