@@ -19,7 +19,8 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
     public sealed class WebsiteClient
     {
         public static readonly int CourseLimitOnDashboard = 7;
-        public static readonly Uri BaseAddress = new Uri("https://decks.memrise.com");
+        public static readonly Uri MemriseAddress = new Uri("https://www.memrise.com");
+        public static readonly Uri DecksAddress = new Uri("https://decks.memrise.com");
         
         private static readonly IDictionary<int, (string Short, string Long)> _termLangs = new Dictionary<int, (string, string)>()
             {
@@ -62,17 +63,34 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                 new KeyValuePair<string, string>("next", "")
             };
 
-            var result = await WrapResponse(() => PostResourceAsForm(reqPath: "/login/", pagePath: "/login/", parameters: parameters));
+            var result = await WrapResponse(() => PostResourceAsForm(MemriseAddress, reqPath: "/login/", pagePath: "/login/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, Forbidden, ServerError>>>(
                 (HttpResponseMessage message) => 
                 {
                     using (message) 
                     {
-                        return Task.FromResult<OneOf<Success, Forbidden, ServerError>>(new Success());
+                        return JoinDecks();
                     }
                 },
                 (Forbidden error) => Task.FromResult<OneOf<Success, Forbidden, ServerError>>(error),
                 (ServerError error) => Task.FromResult<OneOf<Success, Forbidden, ServerError>>(error)
+            );
+        }
+
+        private async Task<OneOf<Success, Forbidden, ServerError>> JoinDecks()
+        {
+            var path = $"join/memrise-for-decks/";
+            var result = await WrapResponse(() => GetResource(DecksAddress, path));
+            return result.Match<OneOf<Success, Forbidden, ServerError>>(
+                (HttpResponseMessage message) => 
+                {
+                    using (message) 
+                    {
+                        return new Success();
+                    }
+                },
+                (Forbidden error) => error,
+                (ServerError error) => error
             );
         }
 
@@ -86,7 +104,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                 new KeyValuePair<string, string>("course_id", courseId)
             };
 
-            var result = await WrapResponse(() => PostResourceAsAjax(reqPath: reqPath, pagePath: "/home/", parameters: parameters));
+            var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/home/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, Forbidden, ServerError>>>(
                 (HttpResponseMessage message) => 
                 {
@@ -104,7 +122,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             GetDashboard(int offset, int limit)
         {
             var path = $"ajax/courses/dashboard/?courses_filter=most_recent&offset={offset}&limit={limit}&get_review_count=false";
-            var result = await WrapResponse(() => GetResource(path));
+            var result = await WrapResponse(() => GetResource(DecksAddress, path));
             return await result.Match<Task<OneOf<DashboardData, Forbidden, ServerError>>>(
                 async (HttpResponseMessage message) => 
                 {
@@ -161,7 +179,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             GetTermDefinitions(string courseId, string slug)
         {
             var path = $"course/{courseId}/{slug}/";
-            var result = await WrapResponse(() => GetResource(path));
+            var result = await WrapResponse(() => GetResource(DecksAddress, path));
             return await result.Match<Task<OneOf<IList<TermDefinition>, NotFound, Forbidden, ServerError>>>(
                 async (HttpResponseMessage message) => 
                 {
@@ -233,7 +251,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             GetSingleLevelId(string courseId, string slug)
         {
             var path = $"course/{courseId}/{slug}/";
-            var result = await WrapResponse(() => GetResource(path));
+            var result = await WrapResponse(() => GetResource(DecksAddress, path));
             return await result.Match<Task<OneOf<string, NotFound, Forbidden, ServerError>>>(
                 async (HttpResponseMessage message) => 
                 {
@@ -285,7 +303,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                 new KeyValuePair<string, string>("short_description", shortDesc)
             };
 
-            var result = await WrapResponse(() => PostResourceAsForm(reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
+            var result = await WrapResponse(() => PostResourceAsForm(DecksAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, Forbidden, ServerError>>>(
                 (HttpResponseMessage message) => 
                 {
@@ -316,7 +334,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                 new KeyValuePair<string, string>("level_id", levelId),
             };
 
-            var result = await WrapResponse(() => PostResourceAsAjax(reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
+            var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, NotFound, Forbidden, ServerError>>>(
                 (HttpResponseMessage message) => 
                 {
@@ -345,7 +363,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                     new KeyValuePair<string, string>("new_val", definition),
                 };
 
-                var result = await WrapResponse(() => PostResourceAsAjax(reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
+                var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
                 if (result.TryPickT0(out HttpResponseMessage message, out var remainder))
                 {
                     using (message) {}
@@ -438,34 +456,35 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             }
         }
 
-        private async Task<HttpResponseMessage> GetResource(string path)
+        private async Task<HttpResponseMessage> GetResource(Uri baseAddress, string path)
         {
-            var response = await _httpClient.GetAsync(path);
+            var response = await _httpClient.GetAsync(new Uri(baseAddress, path));
             return response;
         }
 
-        private async Task<HttpResponseMessage> PostResourceAsForm(string reqPath, string pagePath, IList<KeyValuePair<string, string>> parameters)
+        private async Task<HttpResponseMessage> PostResourceAsForm(Uri baseAddress, string reqPath, string pagePath, IList<KeyValuePair<string, string>> parameters)
         {
-            string csrftoken = await RetrieveCsrfToken(path: pagePath);
+            string csrftoken = await RetrieveCsrfToken(baseAddress, path: pagePath);
             _logger.Debug($"RetrieveCsrfToken=>{csrftoken}");
 
             parameters.Add(new KeyValuePair<string, string>("csrfmiddlewaretoken", csrftoken));
 
             return await PostResource(
+                baseAddress: baseAddress,
                 reqPath: reqPath, 
                 pagePath: pagePath, 
                 csrftoken: csrftoken, 
                 parameters: parameters);
         }
 
-        private async Task<HttpResponseMessage> PostResourceAsAjax(string reqPath, string pagePath, IList<KeyValuePair<string, string>> parameters)
+        private async Task<HttpResponseMessage> PostResourceAsAjax(Uri baseAddress, string reqPath, string pagePath, IList<KeyValuePair<string, string>> parameters)
         {
             string csrftoken = "";
-            var uri = new Uri(BaseAddress, reqPath);
+            var uri = new Uri(baseAddress, reqPath);
             CookieCollection cookies = _cookieContainer.GetCookies(uri);
             foreach (Cookie cookie in cookies)
             {
-                if (cookie.Name == "csrftoken" && cookie.Domain == BaseAddress.Host)
+                if (cookie.Name == "csrftoken" && cookie.Domain == baseAddress.Host)
                 {
                     csrftoken = cookie.Value;
                     break;
@@ -475,20 +494,21 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             _logger.Debug($"RetrieveCsrfToken=>{csrftoken}");
 
             return await PostResource(
+                baseAddress: baseAddress,
                 reqPath: reqPath, 
                 pagePath: pagePath, 
                 csrftoken: csrftoken, 
                 parameters: parameters);
         }
 
-        private async Task<HttpResponseMessage> PostResource(string reqPath, string pagePath, string csrftoken, IList<KeyValuePair<string, string>> parameters)
+        private async Task<HttpResponseMessage> PostResource(Uri baseAddress, string reqPath, string pagePath, string csrftoken, IList<KeyValuePair<string, string>> parameters)
         {
             parameters.Add(new KeyValuePair<string, string>("csrfmiddlewaretoken", csrftoken));
             HttpContent reqContent = new FormUrlEncodedContent(parameters);
 
-            var reqMsg = new HttpRequestMessage(HttpMethod.Post, reqPath);
-            reqMsg.Headers.Add("Origin", BaseAddress.ToString());
-            reqMsg.Headers.Add("Referer", new Uri(BaseAddress, reqPath).ToString());
+            var reqMsg = new HttpRequestMessage(HttpMethod.Post, new Uri(baseAddress, reqPath));
+            reqMsg.Headers.Add("Origin", baseAddress.ToString());
+            reqMsg.Headers.Add("Referer", new Uri(baseAddress, reqPath).ToString());
             reqMsg.Headers.Add("Connection", "keep-alive");
             reqMsg.Headers.Add("Pragma", "no-cache");
             reqMsg.Headers.Add("Cache-Control", "no-cache");
@@ -509,9 +529,9 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             }
         }
 
-        private async Task<string> RetrieveCsrfToken(string path)
+        private async Task<string> RetrieveCsrfToken(Uri baseAddress, string path)
         {
-            using (HttpResponseMessage res = await _httpClient.GetAsync(path))
+            using (HttpResponseMessage res = await _httpClient.GetAsync(new Uri(baseAddress, path)))
             using (HttpContent resContent = res.Content)
             {
                 res.EnsureSuccessStatusCode();

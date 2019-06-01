@@ -11,7 +11,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
     {
         public static HttpClient Create(ILogger logger, HttpClientHandler httpHandler, CookieContainer cookieContainer)
         {
-            var baseAddress = WebsiteClient.BaseAddress;
+            var baseAddress = WebsiteClient.DecksAddress;
             httpHandler.CookieContainer = cookieContainer;
             httpHandler.AllowAutoRedirect = true;
 
