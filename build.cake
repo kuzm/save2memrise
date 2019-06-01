@@ -158,7 +158,7 @@ Task("BuildPublicApiDockerImage")
     .IsDependentOn("BuildPublicApi")
     .Does(() =>
     {
-        var imageRepoName = "save2memrise";
+        var imageRepoName = "save2memrise/public-api";
         
         Information("Running `docker build`...");
         var exitCode = StartProcess("docker", 
@@ -183,7 +183,7 @@ Task("PushPublicApiDockerImage")
         if (string.IsNullOrEmpty(awsAccountId))
             throw new ArgumentException(nameof(awsAccountId)); 
 
-        var imageRepoName = "save2memrise";
+        var imageRepoName = "save2memrise/public-api";
 
         Information("Running `docker tag`...");
         var exitCode = StartProcess("docker", 

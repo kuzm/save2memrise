@@ -67,7 +67,7 @@ Resources:
           - Name: AWS_ACCOUNT_ID
             Value: 321373361512
           - Name: IMAGE_REPO_NAME
-            Value: save2memrise
+            Value: save2memrise/public-api
           - Name: ENVIRONMENT
             Value: prod
       Source:
@@ -95,8 +95,6 @@ Resources:
             Value: eu-central-1
           - Name: AWS_ACCOUNT_ID
             Value: 321373361512
-          - Name: IMAGE_REPO_NAME
-            Value: save2memrise
           - Name: CDN_DISTRIBUTION_ID
             Value: !Ref BlueProdChromeExtCloudfrontDistribution
           - Name: S3_BUCKET_NAME
@@ -128,8 +126,6 @@ Resources:
             Value: eu-central-1
           - Name: AWS_ACCOUNT_ID
             Value: 321373361512
-          - Name: IMAGE_REPO_NAME
-            Value: save2memrise
           - Name: CDN_DISTRIBUTION_ID
             Value: !Ref GreenProdChromeExtCloudfrontDistribution
           - Name: S3_BUCKET_NAME
