@@ -109,7 +109,8 @@ function initCourseDropdown(coursesResponse) {
   $('#course')
     .dropdown({
       values: dropdownCourse(retrieveCourse(), coursesResponse.courses),
-      onChange: storeCourse
+      onChange: storeCourse,
+      placeholder: 'Select a course'
     });
 }
 
