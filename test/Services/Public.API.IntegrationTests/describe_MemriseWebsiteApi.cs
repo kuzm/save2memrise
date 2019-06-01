@@ -13,6 +13,7 @@ using Save2Memrise.Services.Public.API.Handlers;
 using Optional;
 using Optional.Unsafe;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Save2Memrise.Services.Public.API.IntegrationTests
 {
@@ -52,21 +53,8 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
                     }
                 );
 
-                while(true)
-                {
-                    // Get dashboard
-                    var dashboard = await GetDashboard(offset: 0, limit: MemriseApi.WebsiteClient.CourseLimitOnDashboard);
-                    if (dashboard.Courses.Count == 0)
-                    {
-                        break;
-                    }
-
-                    // Clean up
-                    foreach (var course in dashboard.Courses)
-                    {
-                        await QuitCourse(course.Id);
-                    }
-                }
+                // We cannot clean up existing courses and recreate a new ones because 
+                // course creation is protected by reCAPTCHA
             }
         }
 
@@ -80,13 +68,36 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
         {
         }
 
+        async Task it_should_return_dashboard_with_courses()
+        {
+            var dashboard = await GetDashboard();
+            dashboard.Courses.ShouldNotBeNull();
+            dashboard.Courses.Count.ShouldBe(2);
+
+            {
+                var course1 = dashboard.Courses.First(c => c.Name == "course1");
+                course1.Id.ShouldBe("5491547");
+                course1.NumLevels.ShouldBe(1);
+                course1.Slug.ShouldBe("course1");
+            }
+
+            {
+                var course2 = dashboard.Courses.First(c => c.Name == "course2");
+                course2.Id.ShouldBe("5491555");
+                course2.NumLevels.ShouldBe(1);
+                course2.Slug.ShouldBe("course2");
+            }
+        }
+
+        //TODO Course creation is not supported anymore
+        /* 
         async Task it_should_return_empty_dashboard()
         {
             var dashboard = await GetDashboard(offset: 0, limit: MemriseApi.WebsiteClient.CourseLimitOnDashboard);
             dashboard.Courses.ShouldNotBeNull();
             dashboard.Courses.Count.ShouldBe(0);
         }
-
+        
         async Task it_should_return_dashboard_with_created_course()
         {
             var name = "Course 1";
@@ -253,6 +264,25 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
             updatedTermDefs[0].ThingId.ShouldNotBeNullOrEmpty();
             updatedTermDefs[0].Term.ShouldBe(term1);
             updatedTermDefs[0].Definition.ShouldBe(def2);
+        }*/
+
+        private async Task<MemriseApi.DashboardData> GetDashboard()
+        {
+            var getDashboardResult = await _sut.GetDashboard();
+            return getDashboardResult.Match<MemriseApi.DashboardData>(
+                (MemriseApi.DashboardData dashboard) => 
+                {
+                    _logger.Information("Received dashboard: " + JsonConvert.SerializeObject(dashboard));
+                    return dashboard;
+                },
+                (MemriseApi.Forbidden error) => 
+                {
+                    throw new AssertionException("Forbidden");
+                },
+                (MemriseApi.ServerError error) => 
+                {
+                    throw new AssertionException("Server error");
+                });
         }
 
         private async Task<MemriseApi.DashboardData> GetDashboard(int offset, int limit)
@@ -293,7 +323,7 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
             );
         }
 
-        private async Task CreateCourse(string name, int termLang, int definitionLang)
+        /* private async Task CreateCourse(string name, int termLang, int definitionLang)
         {
             var createCourseResult = await _sut.CreateCourse(
                 name: name,
@@ -314,7 +344,7 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
                     throw new AssertionException("Server error");
                 }
             );
-        }
+        }*/
 
         private async Task AddTermDefinition(string levelId, string term, string definition)
         {
