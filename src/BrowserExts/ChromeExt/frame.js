@@ -23,10 +23,12 @@ $(document).ready(function() {
       }
       
       initTermAndDefinitionInputs()
-      initLanguageDropdowns();
+      //TODO initCourseDropdown();
     
       $("#saveWordBtn")
         .on('click', saveWord);
+
+      getCourses();
     });
 });
 
@@ -43,9 +45,9 @@ function storeTermText(val)
   cookie.set('termText', val);
 }
 
-function retrieveTermLang()
+function retrieveCourse()
 {
-  return cookie.get('termLanguage');
+  return cookie.get('course');
 }
 
 function retrieveDefinitionText()
@@ -59,11 +61,6 @@ function storeDefinitionText(val)
 {
   console.log('Storing definitionText: ' + val);
   cookie.set('definitionText', val);
-}
-
-function retrieveDefinitionLang()
-{
-  return cookie.get('definitionLanguage');
 }
 
 function initTermAndDefinitionInputs() {
@@ -88,88 +85,36 @@ function onDefinitionTextChange() {
   storeDefinitionText(definitionText);
 }
 
-function dropdownTermLanguages(selectedValue) {
-  if (!selectedValue) {
-    selectedValue = '6';
-  }
+function dropdownCourse(selectedValue, courses) {
+  let courseItems = [];
 
-  var langs = [
-    {
-      name: 'English',
-      value: '6'
-    },
-    {
-      name: 'German',
-      value: '4'
-    },
-    {
-      name: 'Russian',
-      value: '10'
-    }
-  ];
+  for (var i = 0; i < courses.length; i++) {
+    let course = courses[i];
+    let courseItem = {
+      name: course.name,
+      value: `${course.id}/${course.slug}`
+    };
 
-  for (var i = 0; i < langs.length; i++) {
-    var lang = langs[i];
-    if (lang.value == selectedValue) {
-      lang.selected = true;
-      break;
+    if (courseItem.value == selectedValue) {
+      courseItem.selected = true;
     }
+
+    courseItems.push(courseItem);
   }
   
-  return langs.slice(0); // clone
+  return courseItems;
 }
 
-function dropdownDefinitionLanguages(selectedValue) {
-  if (!selectedValue) {
-    selectedValue = '6';
-  }
-
-  var langs = [
-    {
-      name: 'English',
-      value: '6'
-    },
-    {
-      name: 'German',
-      value: '879'
-    },
-    {
-      name: 'Russian',
-      value: '10'
-    }
-  ];
-
-  for (var i = 0; i < langs.length; i++) {
-    var lang = langs[i];
-    if (lang.value == selectedValue) {
-      lang.selected = true;
-      break;
-    }
-  }
-  
-  return langs.slice(0); // clone
-}
-
-function initLanguageDropdowns() {
-  $('#wordLang')
+function initCourseDropdown(coursesResponse) {
+  $('#course')
     .dropdown({
-      values: dropdownTermLanguages(retrieveTermLang()),
-      onChange: storeTermLanguage
-    });
-
-  $('#definitionLang')
-    .dropdown({
-      values: dropdownDefinitionLanguages(retrieveDefinitionLang()),
-      onChange: storeDefinitionLanguage
+      values: dropdownCourse(retrieveCourse(), coursesResponse.courses),
+      onChange: storeCourse
     });
 }
 
-function storeTermLanguage(termLang) {
-  cookie.set('termLanguage', termLang);
-}
-
-function storeDefinitionLanguage(definitionLang) {
-  cookie.set('definitionLanguage', definitionLang);
+function storeCourse(course) {
+  cookie.set('course', course);
 }
 
 function getWordTxtValue()
@@ -185,9 +130,9 @@ function setWordTxtValue(val)
   $("#wordTxt").val(val);
 }
 
-function getWordLangValue()
+function getCourseValue()
 {
-  return $("#wordLang").dropdown("get value");
+  return $("#course").dropdown("get value");
 }
 
 function getDefinitionTxtValue()
@@ -200,22 +145,66 @@ function setDefinitionTxtValue(val)
   $("#definitionTxt").val(val);
 }
 
-function getDefinitionLangValue()
-{
-  return $("#definitionLang").dropdown("get value");
+function getCourses() {
+  console.log('Courses requested');
+
+  console.log("Requesting memrise cookies...");
+  sendMessage({ requestData: true }, 
+    function(response) {
+      console.log("Memrise cookies received: " + JSON.stringify(response));
+      var memriseCookies = response.memriseCookies;
+      sendCoursesRequest(memriseCookies);
+    });
+};
+
+function sendCoursesRequest(memriseCookies) {
+  var url = cfg.save2memriseApiUrl + "courses";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", url, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.setRequestHeader("Memrise-Cookies", JSON.stringify(memriseCookies));
+  
+  xhr.onreadystatechange = function() {
+    handleCoursesResponse(xhr);
+  };
+  xhr.send();
+}
+
+function handleCoursesResponse(xhr) {
+  if (xhr.readyState == XMLHttpRequest.DONE) {
+    if (xhr.status == 403) {
+      console.warn('Courses retrieval failed: forbidden');
+    }
+    else if (xhr.status == 502) {
+      console.error('Courses retrieval failed: bad gateway');
+    }
+    else if (xhr.status != 200) {
+      console.warn('Courses retrieval failed: ' + xhr.status);
+    }
+    else if (xhr.status == 200) {
+      console.info('Courses retrieved with success');
+
+      // JSON.parse does not evaluate the attacker's scripts.
+      var resp = JSON.parse(xhr.responseText);
+      console.log("Courses retrieval response: " + JSON.stringify(resp));
+      
+      // Reset inputs 
+      initCourseDropdown(resp);
+    }
+  } 
 }
 
 function saveWord() {
   console.log('Saving requested');
 
-  var body = {
+  let course = getCourseValue();
+
+  let body = {
     term: getWordTxtValue(),
-    termLang: getWordLangValue(),
-    def: getDefinitionTxtValue(),
-    defLang: getDefinitionLangValue()
+    def: getDefinitionTxtValue()
   }
 
-  console.log("Current input data: " + JSON.stringify(body));
+  console.log(`Current input data: term=${body.term}, def=${body.def}, course=${course}`);
 
   if (!body.term || !body.def) {
     //TODO 
@@ -223,9 +212,9 @@ function saveWord() {
     return;
   }
 
-  if (!body.termLang || !body.defLang) {
+  if (!course) {
     //TODO 
-    console.error("Both word language and definition language must be provided");
+    console.error("Course must be provided");
     return;
   }
 
@@ -237,12 +226,12 @@ function saveWord() {
     function(response) {
       console.log("Memrise cookies received: " + JSON.stringify(response));
       var memriseCookies = response.memriseCookies;
-      sendWordSavingRequest(body, memriseCookies);
+      sendWordSavingRequest(course, body, memriseCookies);
     });
 };
 
-function sendWordSavingRequest(body, memriseCookies) {
-  var url = cfg.save2memriseApiUrl + "courses/default/items";
+function sendWordSavingRequest(course, body, memriseCookies) {
+  var url = cfg.save2memriseApiUrl + `courses/${course}/items`;
   var xhr = new XMLHttpRequest();
   xhr.open("PUT", url, true);
   xhr.setRequestHeader("Content-Type", "application/json");

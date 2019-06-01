@@ -17,8 +17,8 @@ function setCookie(cookieName, cookieValue, expireDays) {
 }
 
 function showPopup() {
-  var popupWidth = 450;
-  var popupHeight = 370;
+  var popupWidth = 400;
+  var popupHeight = 420;
   chrome.windows.create({
       url: chrome.extension.getURL("popup_without_size.html"),
       type: "popup",

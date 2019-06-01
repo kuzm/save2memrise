@@ -118,6 +118,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             );
         }
 
+        //TODO return only editable courses
         public async Task<OneOf<DashboardData, Forbidden, ServerError>> 
             GetDashboard()
         {

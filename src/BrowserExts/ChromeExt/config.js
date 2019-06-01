@@ -3,7 +3,7 @@ if (typeof module !== 'undefined'
     // Constants for frame.js
     module.exports.save2memriseApiUrl = "http://localhost:5001/v1/";
     module.exports.closeWindowTimeout = 10000;
-    module.exports.extensionId = 'bhjnibbfgdjnooiaplgfhgfibclgmpno'; // local
+    module.exports.extensionId = 'nimbgnckkbbfpbchnjdkhfjnbahjhiln'; // local
 } else {
     // Constants for popup.js
     window.frameUrl = "frame.html";

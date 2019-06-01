@@ -65,23 +65,24 @@
 
 <div class="ui form" style="margin-bottom:10px">
     <div class="field">
-        <label>Word</label>
-        <div class="ui right input">
-            <input type="text" id="wordTxt" placeholder="" style="margin-right: 5px;">
-            <div id="wordLang" class="ui compact selection dropdown" style="min-width: 100px;">
+        <label>Course</label>
+        <div class="ui input">
+            <div id="course" class="ui fluid selection dropdown" style="min-width: 100px;">
                 <div class="text"></div>
                 <i class="dropdown icon"></i>
             </div>
         </div>
     </div>
     <div class="field">
+        <label>Word</label>
+        <div class="ui input">
+            <input type="text" id="wordTxt" placeholder="">
+        </div>
+    </div>
+    <div class="field">
         <label>Definition</label>
-        <div class="ui right input">
-            <textarea id="definitionTxt" rows="2" style="margin-right: 5px;"></textarea>
-            <div id="definitionLang" class="ui compact selection dropdown" style="min-width: 100px;">
-                <div class="text"></div>
-                <i class="dropdown icon"></i>
-            </div>
+        <div class="ui input">
+            <textarea id="definitionTxt" rows="2"></textarea>
         </div>
     </div>
     <button id="saveWordBtn" class="ui button" type="submit">Save</button>
