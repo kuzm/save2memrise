@@ -19,7 +19,7 @@ Parameters:
     Description: >
       Specifies the EC2 instance type for your container instances.
       Defaults to m4.large
-    Default: m4.large
+    Default: t3.micro
     ConstraintDescription: must be a valid EC2 instance type.
   KeyName:
     Type: String

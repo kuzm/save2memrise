@@ -123,7 +123,7 @@ Resources:
       Parameters:
         EcsClusterName: !Ref EcsClusterName
         EcsAmiId: ami-9fc39c74
-        EcsInstanceType: t2.micro
+        EcsInstanceType: t3.micro
         KeyName: save2memrise
         VpcId: ''
         SubnetIds: ''
@@ -132,7 +132,7 @@ Resources:
         SubnetCidr1: '10.0.0.0/24'
         SubnetCidr2: '10.0.1.0/24'
         SubnetCidr3: ''
-        AsgMaxSize: 3
+        AsgMaxSize: 1
         IamRoleInstanceProfile: 'arn:aws:iam::321373361512:instance-profile/ecsInstanceRole'
         SecurityIngressFromPort: 32768
         SecurityIngressToPort: 65535
