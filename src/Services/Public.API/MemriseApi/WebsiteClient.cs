@@ -137,7 +137,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                         break;
                     }
 
-                    mergedDashboard.Courses.AddRange(dashboard.Courses);
+                    mergedDashboard.Courses.AddRange(dashboard.Courses.Where(c => c.NumLevels == 1));
                 }
                 else 
                 {
