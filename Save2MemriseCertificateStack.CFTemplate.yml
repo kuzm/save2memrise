@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   Stack to configure a save2memrise certificate 
+Parameters:
+  ProjectNameTag:
+    Type: String
+    Default: save2memrise
 Resources:
   ELBAcmCertificate: 
     Type: AWS::CertificateManager::Certificate
@@ -13,3 +17,7 @@ Resources:
       DomainValidationOptions:
         - DomainName: save2memrise.com
           ValidationDomain: save2memrise.com
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag

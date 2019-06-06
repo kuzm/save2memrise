@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   Root stack to configure CI/CD 
 Parameters:
+  ProjectNameTag:
+    Type: String
+    Default: save2memrise
   GitHubOwner:
     Type: String
     Default: 'kuzm'
@@ -42,14 +45,26 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       BucketName: 'save2memrisestack2-cloudformationbucket'
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   BuildEcrRepository: 
     Type: AWS::ECR::Repository
     Properties: 
       RepositoryName: "save2memrise/build"
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   PublicApiEcrRepository: 
     Type: AWS::ECR::Repository
     Properties: 
       RepositoryName: "save2memrise/public-api"
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   CodePipelineStack:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
@@ -161,6 +176,10 @@ Resources:
       DomainValidationOptions:
         - DomainName: save2memrise.com
           ValidationDomain: save2memrise.com
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   LoadBalancer2: 
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -171,6 +190,10 @@ Resources:
           Value: '30'
       Subnets: [ !GetAtt ECSClusterStack.Outputs.PubSubnetAz1, !GetAtt ECSClusterStack.Outputs.PubSubnetAz2 ]
       SecurityGroups: [ !Ref 'LoadBalancerSecurityGruop' ]
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   ProdChromeExtDNSName:
     Type: AWS::Route53::RecordSetGroup
     Properties:
@@ -202,6 +225,10 @@ Resources:
     Properties:
       GroupDescription: Security group for Load Balancer
       VpcId: !GetAtt ECSClusterStack.Outputs.VpcId
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   LoadBalancerSecurityGroupIngress:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
@@ -244,6 +271,10 @@ Resources:
       Protocol: HTTP
       UnhealthyThresholdCount: 2
       VpcId: !GetAtt ECSClusterStack.Outputs.VpcId
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   GreenProdLoadBalancerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -258,6 +289,10 @@ Resources:
       Protocol: HTTP
       UnhealthyThresholdCount: 2
       VpcId: !GetAtt ECSClusterStack.Outputs.VpcId
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   BlueProdLoadBalancerListenerRule: 
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
@@ -322,6 +357,10 @@ Resources:
       RequiresCompatibilities: []
       Volumes: []
       PlacementConstraints: []
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
 #Outputs:
   #PipelineUrl:
   #  Value: !GetAtt CodePipelineStack.Outputs.PipelineUrl

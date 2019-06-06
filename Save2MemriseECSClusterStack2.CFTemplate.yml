@@ -5,6 +5,9 @@ Description: >
   in Create Cluster Wizard. Requires exactly 1
   Instance Types for a Spot Request.
 Parameters:
+  ProjectNameTag:
+    Type: String
+    Default: save2memrise
   EcsClusterName:
     Type: String
     Description: >
@@ -174,6 +177,10 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: !Ref EcsClusterName
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   Vpc:
     Condition: CreateSubnet1
     Type: AWS::EC2::VPC
@@ -181,6 +188,10 @@ Resources:
       CidrBlock: !Ref VpcCidr
       EnableDnsSupport: 'true'
       EnableDnsHostnames: 'true'
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   PubSubnetAz1:
     Condition: CreateSubnet1
     Type: AWS::EC2::Subnet
@@ -189,6 +200,10 @@ Resources:
       CidrBlock: !Ref SubnetCidr1
       AvailabilityZone: !Select [ 0, !Ref VpcAvailabilityZones ]
       MapPublicIpOnLaunch: true
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   PubSubnetAz2:
     Condition: CreateSubnet2
     Type: AWS::EC2::Subnet
@@ -197,6 +212,10 @@ Resources:
       CidrBlock: !Ref SubnetCidr2
       AvailabilityZone: !Select [ 1, !Ref VpcAvailabilityZones ]
       MapPublicIpOnLaunch: true
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   PubSubnetAz3:
     Condition: CreateSubnet3
     Type: AWS::EC2::Subnet
@@ -205,9 +224,18 @@ Resources:
       CidrBlock: !Ref SubnetCidr3
       AvailabilityZone: !Select [ 2, !Ref VpcAvailabilityZones ]
       MapPublicIpOnLaunch: true
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   InternetGateway:
     Condition: CreateSubnet1
     Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   AttachGateway:
     Condition: CreateSubnet1
     Type: AWS::EC2::VPCGatewayAttachment
@@ -256,6 +284,10 @@ Resources:
         FromPort: !Ref SecurityIngressFromPort
         ToPort: !Ref SecurityIngressToPort
         CidrIp: !Ref SecurityIngressCidrIp
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   EcsInstanceLc:
     Type: AWS::AutoScaling::LaunchConfiguration
     Condition: CreateWithASG
@@ -300,6 +332,10 @@ Resources:
           Key: Description
           Value: "This instance is the part of the Auto Scaling group which was created through ECS Console"
           PropagateAtLaunch: 'true'
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
+          PropagateAtLaunch: 'true'
   EcsSpotFleet:
     Condition: CreateWithSpot
     Type: AWS::EC2::SpotFleet
@@ -338,6 +374,10 @@ Resources:
                        VolumeType: !Ref EbsVolumeType
               UserData:
                     Fn::Base64: !Ref UserData
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
 Outputs:
   EcsInstanceAsgName:
     Condition: CreateWithASG

@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   Stack for deployable resources e.g. services and storage
 Parameters:
+  ProjectNameTag:
+    Type: String
+    Default: save2memrise
   EcsClusterName:
     Type: String
     Description: >
@@ -59,6 +62,10 @@ Resources:
       BucketName: !Ref 'FullChromeExtDomainName'
       WebsiteConfiguration:
         IndexDocument: index.html
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   ChromeExtCloudfrontDistribution: 
     Type: AWS::CloudFront::Distribution
     DependsOn:
@@ -94,6 +101,10 @@ Resources:
         ViewerCertificate:
           AcmCertificateArn: !Ref 'CloudFrontAcmCertificateArn'
           SslSupportMethod: sni-only
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   ChromeExtDNSName:
     Type: AWS::Route53::RecordSetGroup
     Properties:
@@ -128,6 +139,11 @@ Resources:
         TargetGroupArn: !Ref LoadBalancerTargetGroup
       Role: 'arn:aws:iam::321373361512:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS'
       TaskDefinition: !Ref PublicApiTaskDefinition
+      #TODO Did not have IAM permissions to process tags on AWS::ECS::Service resource.
+      #Tags:
+      #  - 
+      #    Key: ProjectName
+      #    Value: !Ref ProjectNameTag
 Outputs:
   ChromeExtCloudfrontDistribution:
     Value: !Ref ChromeExtCloudfrontDistribution

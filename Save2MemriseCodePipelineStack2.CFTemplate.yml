@@ -3,6 +3,9 @@ Description: >-
   Pipeline for continuous delivery of Save2Memrise app which consists of EC2
   service and S3 bucket. 
 Parameters:
+  ProjectNameTag:
+    Type: String
+    Default: save2memrise
   GitHubOwner:
     Type: String
   GitHubOAuthToken:
@@ -30,6 +33,11 @@ Resources:
   PipelineBucket:
     Type: 'AWS::S3::Bucket'
     DeletionPolicy: Delete
+    Properties: 
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   PipelineWebhook2:
     Type: AWS::CodePipeline::Webhook
     Properties:
@@ -74,6 +82,10 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: public-api-buildspec.yml
       TimeoutInMinutes: 10
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   BlueProdDeployChromeExtProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
@@ -105,6 +117,10 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: chrome-ext-buildspec.yml
       TimeoutInMinutes: 10
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   GreenProdDeployChromeExtProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
@@ -136,6 +152,10 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: chrome-ext-buildspec.yml
       TimeoutInMinutes: 10
+      Tags:
+        - 
+          Key: ProjectName
+          Value: !Ref ProjectNameTag
   Pipeline:
     Type: 'AWS::CodePipeline::Pipeline'
     Properties:
