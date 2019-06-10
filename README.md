@@ -8,15 +8,6 @@ To install this extension to your Chrome browser, [go to Chrome Web Store](https
 
 ### Version Control
 
-The source code of the project is hosted on AWS CodeCommit. To connect to the git repo in CodeCommit via SSH, add the following to `~/.ssh/config`:
-```
-Host git-codecommit.*.amazonaws.com
-  User <your-user>
-  IdentityFile ~/.ssh/id_rsa
-```
-
-Read [Setup Steps for SSH Connections to AWS CodeCommit Repositories on Linux, macOS, or Unix](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-ssh-unixes.html)
-
 Make sure that `~/.ssh/id_rsa.pub` is available on your machine and RSA identity is added to the SSH agent: 
 ```
 eval `ssh-agent -s`
@@ -33,6 +24,14 @@ open /Applications/Sourcetree.app
 or 
 ```
 open /Applications/Sublime\ Merge.app
+```
+
+### Docker
+
+Build and run locally with `docker-compose`:
+```
+docker-compose down
+docker-compose up --force-recreate --build
 ```
 
 ### AWS CLI in Docker
@@ -56,24 +55,7 @@ aws configure
 ```
 
 
-### Docker
-
-Build and run locally with `docker-compose`:
-```
-docker-compose down
-docker-compose up --force-recreate --build
-```
-
-
 ## Chrome extension
-
-To load an unpacked extension to the browser, follow the following steps: 
-1. Visit chrome://extensions in your browser. 
-2. Ensure that the Developer mode checkbox in the top right-hand corner is checked.
-3. Click Load unpacked extension… to pop up a file-selection dialog. 
-4. Navigate to the directory in which your extension files live, and select it.
-
-If the extension is valid, it'll be loaded up and active right away. If it's invalid, an error message will be displayed at the top of the page. Correct the error, and try again.
 
 ### Development Setup
 
@@ -98,6 +80,17 @@ For the regular build, run:
 ```
 ./build.sh --target=BuildChromeExt
 ```
+
+### Install unpacked extension
+
+To load an unpacked extension to the browser, follow the following steps: 
+1. Visit chrome://extensions in your browser. 
+2. Ensure that the Developer mode checkbox in the top right-hand corner is checked.
+3. Click Load unpacked extension… to pop up a file-selection dialog. 
+4. Navigate to the directory in which your extension files live (`src/BrowserExts/ChromeExt/build`), and select it.
+
+If the extension is valid, it'll be loaded up and active right away. If it's invalid, an error message will be displayed at the top of the page. Correct the error, and try again.
+
 
 ## Services
 
@@ -125,20 +118,26 @@ Run tests with cake:
 /build.sh --target=IntegrationTest
 ```
 
+
 ## AWS Prerequisites
 
 1. Create ACM Certificate in us-east-1 region by creating CloudFormation stack from the following file: `Save2MemriseCertificateStack.CFTemplate.yml`. 
 
 > [How do I migrate my SSL certificate to the US East (N. Virginia) region?](https://aws.amazon.com/premiumsupport/knowledge-center/migrate-ssl-cert-us-east/) You can't migrate an existing certificate in ACM from one AWS Region to another. To associate an ACM Certificate with a CloudFront distribution, you must create a certificate in the US East (N. Virginia) Region.
 
+
 ## Deployment
 
 Deployment is performed by AWS CodePipeline. CodePipeline has the following steps configured: 
-1. AWS CodeCommit as a source repository. 
+1. GitHub as a source repository. 
 2. AWS CodeBuild to build docker images and push them to ECR. 
-2.1. CodeBuild reads `buildspec.yml` for build instructions.  
+2.1. CodeBuild reads `public-api-buildspec.yml` for build instructions.  
 3. AWS CodeDeploy which pulls docker images from ECR and deploys them to ECS. 
-4. AWS CodeBuild with builds chrome extension and uploads to S3. 
+4. AWS CodeBuild with builds chrome extension, uploads to S3, and invalidates CloudFront cache. 
+4.1. CodeBuild reads `chrome-ext-buildspec.yml` for build instructions.
+
+Two environments are defined: blue and green. Both are production environments. 
+Green environment is a main one for stable releases. The blue environment is intended for unstable releases. Once a release is tested, live traffic should be switched from the green env to the blue env. If no issues are found, the release can be promoted to the green env and live traffic can be switched to the green env. If some issues are detected, the release should not be promoted, and live traffic should be switched back to the green env which still runs the stable version. When inactive, the blue env can be deactivated to optimize costs. 
 
 Logs are collected by AWS CloudWatch in the log group `save2memrise`. 
 
@@ -165,41 +164,46 @@ Warning! It is strongly recommended to apply updates on the root stack, even if 
 
 1. AWS CLI is available as Docker image. Read the section *AWS CLI in Docker* above for the instructions. 
 
-2. Upload the current version of CloudFormation templates to S3:
+2. Navigate to the folder with CloudFormation templates:
+```
+cd infra/CloudFormation
+```
+
+3. Upload the current version of CloudFormation templates to S3:
 ```
 ./upload-cftemplates-to-s3.sh
 ```
 
-3. Create a change set:
+4. Create a change set:
 ```
 aws cloudformation create-change-set --stack-name Save2MemriseStack2 --template-url https://s3.amazonaws.com/save2memrisestack2-cloudformationbucket/Save2MemriseStack2.CFTemplate.yml  --change-set-name=Save2MemriseStack2ChangeSet
 ```
 
-4. List the created change sets:
+5. List the created change sets:
 ```
 aws cloudformation list-change-sets --stack-name Save2MemriseStack2
 ```
 
-5. View the change set:
+6. View the change set:
 ```
 aws cloudformation describe-change-set --stack-name Save2MemriseStack2 --change-set-name Save2MemriseStack2ChangeSet
 ```
 
 Alternatively, you can see change set details in AWS Console. 
 
-6. Execute the change set: 
+7. Execute the change set: 
 ```
 aws cloudformation execute-change-set --stack-name Save2MemriseStack2 --change-set-name Save2MemriseStack2ChangeSet
 ```
 
-7. View the progress of change set execution:
+8. View the progress of change set execution:
 ```
 aws cloudformation describe-stacks --stack-name Save2MemriseStack2
 ```
 
 Status of the stack should be `UPDATE_COMPLETE`. If not, go to CloudFormation in AWS Console and view log messages for this stack. 
 
-8. Delete a change set:
+9. Delete a change set:
 ```
 aws cloudformation delete-change-set --stack-name Save2MemriseStack2 --change-set-name Save2MemriseStack2ChangeSet
 ```
@@ -211,12 +215,11 @@ aws sts decode-authorization-message --encoded-message <value>
 
 ### Publish to Chrome Web Store
 
-1. Go to `src/BrowserExts/ChromeExt` directory
-2. Increment the version of the extension in `manifest.json`
-3. Execute `gulp` 
-4. Compress the content of `build` directory as ZIP archive
-5. Go to [Chrome Web Store Console](https://chrome.google.com/webstore/developer/dashboard?authuser=1) and sign in as `save2memrise@gmail.com` user
-6. Upload the archive
+1. Increment the version of the extension in `version.txt`
+2. Execute `./build.sh --target=BuildChromeExt` 
+3. Compress the content of `src/BrowserExts/ChromeExt/build` directory as ZIP archive
+4. Go to [Chrome Web Store Console](https://chrome.google.com/webstore/developer/dashboard?authuser=1) and sign in as `save2memrise@gmail.com` user
+5. Upload the archive
 
 The extension is published at https://chrome.google.com/webstore/detail/save-to-memrise/jedpoleopoehklpioonelookacalmcfk?authuser=1
 
@@ -231,15 +234,15 @@ To make Green or Blue active environment, update CloudFormation stack:
 3.1. Go to EC2 > Load Balancers > Listeners > Rules. Default routing should forward traffic to the selected environment. 
 3.2. Go to Route 53 > Hosted Zones and CloudFront > Distributions and check that `chromeext2.save2memrise.com` is mapped to the proper distribution. 
 
-# Investigate Memrise API 
+
+## Investigate Memrise API 
 
 Sniff traffic of the Memrise mobile app with Packet Capture app on your Android device. Capture app produces *.pcap files that can be stored in `Download` folder of your Android device. If you can't see these files when browsing your device's files with Android File Transfer from your Mac via MTP, rebuild your device's SD index. To rescan your SD, use SD Card Scanner Pro app from Google Play. 
 
 *Update*: Sniff traffic from decks.memrise.com by using Developer tools in Chrome. Memrise REST API is no longer used. 
 
-# Troubleshooting
+## Troubleshooting
 
-## Status of AWS::CertificateManager::Certificate is stuck with CREATE_IN_PROGRESS
+### Status of AWS::CertificateManager::Certificate is stuck with CREATE_IN_PROGRESS
 
 Check your email and approve a certificate creation for each subdomain. 
-
