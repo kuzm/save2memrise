@@ -20,42 +20,26 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
     public class describe_MemriseWebsiteApi : nspec
     {
         readonly ILogger _logger = Log.Logger;
-        MemriseApi.WebsiteClient _sut;
 
+        MemriseApi.WebsiteClient _sut;
+        MemriseOptions _memriseOptions;
         HttpClientHandler _httpHandler;
         HttpClient _httpClient;
 
-        async Task before_each()
+        
+
+        void before_each()
         {
-            var memriseOptions = ConfigHelper.Get<MemriseOptions>("Memrise");
+            _memriseOptions = ConfigHelper.Get<MemriseOptions>("Memrise");
 
             var cookieContainer = new CookieContainer();
             
             _httpHandler = new HttpClientHandler();
             _httpClient = MemriseApi.HttpClientFactory.Create(_logger, _httpHandler, cookieContainer);
-            {
-                _sut = new MemriseApi.WebsiteClient(_logger, _httpClient, cookieContainer);
-                
-                // Log in
-                var loginResult = await _sut.Login(username: memriseOptions.Username, password: memriseOptions.Password);
-                loginResult.Switch(
-                    (Success _) => 
-                    {
-                        _logger.Information("Logged in!");
-                    },
-                    (MemriseApi.Forbidden error) => 
-                    {
-                        throw new AssertionException("Forbidden");
-                    },
-                    (MemriseApi.ServerError error) => 
-                    {
-                        throw new AssertionException("Server error");
-                    }
-                );
+            _sut = new MemriseApi.WebsiteClient(_logger, _httpClient, cookieContainer);
 
-                // We cannot clean up existing courses and recreate a new ones because 
-                // course creation is protected by reCAPTCHA
-            }
+            // We cannot remove existing courses and recreate new ones because 
+            // course creation is protected by reCAPTCHA
         }
 
         void after_each()
@@ -64,85 +48,135 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
             _httpHandler?.Dispose();
         }
 
-        void act_each()
+        void given_account_with_one_course()
         {
-        }
-
-        async Task it_should_return_dashboard_with_courses()
-        {
-            var dashboard = await GetDashboard();
-            dashboard.Courses.ShouldNotBeNull();
-            dashboard.Courses.Count.ShouldBe(2);
-
+            // Pre-configured course
+            var course = new MemriseApi.CourseData
             {
-                var course1 = dashboard.Courses.First(c => c.Name == "course1");
-                course1.Id.ShouldBe("5491547");
-                course1.NumLevels.ShouldBe(1);
-                course1.Slug.ShouldBe("course1");
-            }
+                Name = "Course 1",
+                Id = "5505795",
+                NumLevels = 1,
+                Slug = "course-1"
+            };
 
+            beforeAsync = async () => 
             {
-                var course2 = dashboard.Courses.First(c => c.Name == "course2");
-                course2.Id.ShouldBe("5491555");
-                course2.NumLevels.ShouldBe(1);
-                course2.Slug.ShouldBe("course2");
-            }
+                await Login(username: "test-with-one-course", password: _memriseOptions.Password);
+                await RemoveAllTermDefinitions(courseName: "Course 1");
+            };
+
+            itAsync["it should return dashboard with one course"] = async () => 
+            {
+                var dashboard = await GetDashboard();
+                dashboard.Courses.ShouldNotBeNull();
+                dashboard.Courses.Count.ShouldBe(1);
+
+                {
+                    var course1 = dashboard.Courses.First(c => c.Name == course.Name);
+                    course1.Id.ShouldBe(course.Id);
+                    course1.NumLevels.ShouldBe(1);
+                    course1.Slug.ShouldBe(course.Slug);
+                }
+            };
+
+            itAsync["it should get no term definitions"] = async () => 
+            {
+                var termDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
+                termDefs.ShouldNotBeNull();
+                termDefs.Count.ShouldBe(0);
+            };
+
+            itAsync["it should get term definitions which has been added to course"] = async () => 
+            {
+                var levelIdOption = await GetSingleLevelId(courseId: course.Id, slug: course.Slug);
+                levelIdOption.HasValue.ShouldBeTrue();
+                
+                var levelId = levelIdOption.ValueOrFailure();
+                levelId.ShouldNotBeNullOrEmpty();
+
+                var term1 = "term 1";
+                var def1 = "def 1";
+                await AddTermDefinition(levelId: levelId, term: term1, definition: def1);
+
+                var term2 = "term 2";
+                var def2 = "def 2";
+                await AddTermDefinition(levelId: levelId, term: term2, definition: def2);
+
+                var termDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
+                termDefs.ShouldNotBeNull();
+                termDefs.Count.ShouldBe(2);
+
+                termDefs[0].ThingId.ShouldNotBeNullOrEmpty();
+                termDefs[0].Term.ShouldBe(term1);
+                termDefs[0].Definition.ShouldBe(def1);
+
+                termDefs[1].ThingId.ShouldNotBeNullOrEmpty();
+                termDefs[1].Term.ShouldBe(term2);
+                termDefs[1].Definition.ShouldBe(def2);
+            };
+
+            itAsync["it should get updated term definition which has been added to course"] = async () => 
+            {
+                var levelIdOption = await GetSingleLevelId(courseId: course.Id, slug: course.Slug);
+                levelIdOption.HasValue.ShouldBeTrue();
+                
+                var levelId = levelIdOption.ValueOrFailure();
+                levelId.ShouldNotBeNullOrEmpty();
+
+                var term1 = "term 1";
+                var def1 = "def 1";
+                await AddTermDefinition(levelId: levelId, term: term1, definition: def1);
+
+                var termDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
+                termDefs.ShouldNotBeNull();
+                termDefs.Count.ShouldBe(1);
+
+                var def2 = "def 2";
+                await UpdateTermDefinition(thingId: termDefs[0].ThingId, definition: def2);
+
+                var updatedTermDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
+                updatedTermDefs.ShouldNotBeNull();
+                updatedTermDefs.Count.ShouldBe(1);
+
+                updatedTermDefs[0].ThingId.ShouldNotBeNullOrEmpty();
+                updatedTermDefs[0].Term.ShouldBe(term1);
+                updatedTermDefs[0].Definition.ShouldBe(def2);
+            };
         }
 
-        //TODO Course creation is not supported anymore
-        /* 
-        async Task it_should_return_empty_dashboard()
+        void given_account_with_no_courses()
         {
-            var dashboard = await GetDashboard(offset: 0, limit: MemriseApi.WebsiteClient.CourseLimitOnDashboard);
-            dashboard.Courses.ShouldNotBeNull();
-            dashboard.Courses.Count.ShouldBe(0);
-        }
-        
-        async Task it_should_return_dashboard_with_created_course()
-        {
-            var name = "Course 1";
-            var termLang = 8;
-            var definitionLang = 5;
-            await CreateCourse(name, termLang, definitionLang);
+            beforeAsync = async () => 
+            {
+                await Login(username: "test-with-no-courses", password: _memriseOptions.Password);
+            };
 
-            var dashboard = await GetDashboard(offset: 0, limit: MemriseApi.WebsiteClient.CourseLimitOnDashboard);
-            dashboard.Courses.ShouldNotBeNull();
-            dashboard.Courses.Count.ShouldBe(1);
+            itAsync["it should return dashboard with no courses"] = async () => 
+            {
+                var dashboard = await GetDashboard();
+                dashboard.Courses.ShouldNotBeNull();
+                dashboard.Courses.Count.ShouldBe(0);
+            };
+        }
+
+        void given_course_with_many_courses()
+        {
+            // Pre-configured course
+            var course = new MemriseApi.CourseData
+            {
+                Name = "Course 1",
+                Id = "5505814",
+                NumLevels = 1,
+                Slug = "course-1"
+            };
             
-            var course = dashboard.Courses[0];
-            course.Id.ShouldNotBeNullOrEmpty();
-            course.Name.ShouldBe(name);
-            course.NumLevels.ShouldBe(1);
-            course.Slug.ShouldNotBeNullOrEmpty();
-        }
+            beforeAsync = async () => 
+            {
+                await Login(username: "test-with-many-courses", password: _memriseOptions.Password);
+            };
 
-        async Task it_should_find_course_on_first_dashboard_page()
-        {
-            var name1 = "Course 1";
-            var name2 = "Course 1";
-            var name3 = "Course 1";
-            var termLang = 8;
-            var definitionLang = 5;
-            
-            await CreateCourse(name: name1, termLang: termLang, definitionLang: definitionLang);
-            await CreateCourse(name: name2, termLang: termLang, definitionLang: definitionLang);
-            await CreateCourse(name: name3, termLang: termLang, definitionLang: definitionLang);
-
-            var courseOption = await FindCourse(courseName: name3, limit: 2);
-            courseOption.HasValue.ShouldBeTrue();
-            
-            var course = courseOption.ValueOrFailure();
-            course.Name.ShouldBe(name3);
-            course.Id.ShouldNotBeNullOrEmpty();
-            course.NumLevels.ShouldBe(1);
-            course.Slug.ShouldNotBeNullOrEmpty();
-        }
-
-        void given_many_courses_were_created()
-        {
             new Each<string, int, int>
             {
-                {"number of courses is not too many", 3, 2},
                 {"number of courses is big", 10, MemriseApi.WebsiteClient.CourseLimitOnDashboard},
                 {"number of courses is big with small page limit", 10, 3}
             }
@@ -150,121 +184,36 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
             {
                 itAsync[$"should find course on second dashboard page when {title}"] = async () => 
                 {
-                    var courseNames = new string[numberOfCourses];
-                    for(int i = 0; i < numberOfCourses; ++i)
-                    {
-                        var name = $"Course {i+1}";
-                        courseNames[i] = name;
-                        var termLang = 8;
-                        var definitionLang = 5;
-                        await CreateCourse(name: name, termLang: termLang, definitionLang: definitionLang);
-                    }
-                    
-                    var courseOption = await FindCourse(courseName: courseNames[0], limit: pageLimit);
+                    var courseOption = await FindCourse(courseName: course.Name, limit: pageLimit);
                     courseOption.HasValue.ShouldBeTrue();
                     
-                    var course = courseOption.ValueOrFailure();
-                    course.Name.ShouldBe(courseNames[0]);
-                    course.Id.ShouldNotBeNullOrEmpty();
-                    course.NumLevels.ShouldBe(1);
-                    course.Slug.ShouldNotBeNullOrEmpty();
+                    var course1 = courseOption.ValueOrFailure();
+                    course1.Name.ShouldBe(course.Name);
+                    course1.Id.ShouldBe(course.Id);
+                    course1.NumLevels.ShouldBe(1);
+                    course1.Slug.ShouldBe(course.Slug);
                 };
             });
         }
 
-        async Task it_should_get_no_term_definitions_from_newly_created_course()
+        private async Task Login(string username, string password)
         {
-            var courseName = "Course 1";
-            var termLang = 8;
-            var definitionLang = 5;
-            
-            await CreateCourse(name: courseName, termLang: termLang, definitionLang: definitionLang);
-            
-            var courseOption = await FindCourse(courseName: courseName, limit: 2);
-            courseOption.HasValue.ShouldBeTrue();
-            
-            var course = courseOption.ValueOrFailure();
-            var termDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
-            termDefs.ShouldNotBeNull();
-            termDefs.Count.ShouldBe(0);
+            var loginResult = await _sut.Login(username: username, password: password);
+            loginResult.Switch(
+                (Success _) => 
+                {
+                    _logger.Information("Logged in!");
+                },
+                (MemriseApi.Forbidden error) => 
+                {
+                    throw new AssertionException("Forbidden");
+                },
+                (MemriseApi.ServerError error) => 
+                {
+                    throw new AssertionException("Server error");
+                }
+            );
         }
-
-        async Task it_should_get_term_definitions_which_has_been_added_to_course()
-        {
-            var courseName = "Course 1";
-            var termLang = 8;
-            var definitionLang = 5;
-            
-            await CreateCourse(name: courseName, termLang: termLang, definitionLang: definitionLang);
-            
-            var courseOption = await FindCourse(courseName: courseName, limit: 2);
-            courseOption.HasValue.ShouldBeTrue();
-            
-            var course = courseOption.ValueOrFailure();
-            var levelIdOption = await GetSingleLevelId(courseId: course.Id, slug: course.Slug);
-            levelIdOption.HasValue.ShouldBeTrue();
-            
-            var levelId = levelIdOption.ValueOrFailure();
-            levelId.ShouldNotBeNullOrEmpty();
-
-            var term1 = "term 1";
-            var def1 = "def 1";
-            await AddTermDefinition(levelId: levelId, term: term1, definition: def1);
-
-            var term2 = "term 2";
-            var def2 = "def 2";
-            await AddTermDefinition(levelId: levelId, term: term2, definition: def2);
-
-            var termDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
-            termDefs.ShouldNotBeNull();
-            termDefs.Count.ShouldBe(2);
-
-            termDefs[0].ThingId.ShouldNotBeNullOrEmpty();
-            termDefs[0].Term.ShouldBe(term1);
-            termDefs[0].Definition.ShouldBe(def1);
-
-            termDefs[1].ThingId.ShouldNotBeNullOrEmpty();
-            termDefs[1].Term.ShouldBe(term2);
-            termDefs[1].Definition.ShouldBe(def2);
-        }
-
-        async Task it_should_get_updated_term_definition_which_has_been_added_to_course()
-        {
-            var courseName = "Course 1";
-            var termLang = 8;
-            var definitionLang = 5;
-            
-            await CreateCourse(name: courseName, termLang: termLang, definitionLang: definitionLang);
-            
-            var courseOption = await FindCourse(courseName: courseName, limit: 2);
-            courseOption.HasValue.ShouldBeTrue();
-            
-            var course = courseOption.ValueOrFailure();
-            var levelIdOption = await GetSingleLevelId(courseId: course.Id, slug: course.Slug);
-            levelIdOption.HasValue.ShouldBeTrue();
-            
-            var levelId = levelIdOption.ValueOrFailure();
-            levelId.ShouldNotBeNullOrEmpty();
-
-            var term1 = "term 1";
-            var def1 = "def 1";
-            await AddTermDefinition(levelId: levelId, term: term1, definition: def1);
-
-            var termDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
-            termDefs.ShouldNotBeNull();
-            termDefs.Count.ShouldBe(1);
-
-            var def2 = "def 2";
-            await UpdateTermDefinition(thingId: termDefs[0].ThingId, definition: def2);
-
-            var updatedTermDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
-            updatedTermDefs.ShouldNotBeNull();
-            updatedTermDefs.Count.ShouldBe(1);
-
-            updatedTermDefs[0].ThingId.ShouldNotBeNullOrEmpty();
-            updatedTermDefs[0].Term.ShouldBe(term1);
-            updatedTermDefs[0].Definition.ShouldBe(def2);
-        }*/
 
         private async Task<MemriseApi.DashboardData> GetDashboard()
         {
@@ -323,29 +272,6 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
             );
         }
 
-        /* private async Task CreateCourse(string name, int termLang, int definitionLang)
-        {
-            var createCourseResult = await _sut.CreateCourse(
-                name: name,
-                termLang: termLang,
-                definitionLang: definitionLang
-            );
-            createCourseResult.Switch(
-                (Success _) => 
-                {
-                    _logger.Information("Course created");
-                },
-                (MemriseApi.Forbidden error) => 
-                {
-                    throw new AssertionException("Forbidden");
-                },
-                (MemriseApi.ServerError error) => 
-                {
-                    throw new AssertionException("Server error");
-                }
-            );
-        }*/
-
         private async Task AddTermDefinition(string levelId, string term, string definition)
         {
             var addTermDefResult = await _sut.AddTermDefinition(
@@ -372,6 +298,44 @@ namespace Save2Memrise.Services.Public.API.IntegrationTests
                     throw new AssertionException("Server error");
                 }
             );
+        }
+
+        private async Task RemoveTermDefinition(string levelId, string thingId)
+        {
+            var removeTermDefResult = await _sut.RemoveTermDefinition(
+                levelId: levelId,
+                thingId: thingId
+            );
+
+            removeTermDefResult.Switch(
+                (Success _) => 
+                {
+                    _logger.Information("Term definition removed");
+                },
+                (NotFound _) => 
+                {
+                    throw new AssertionException("NotFound");
+                },
+                (MemriseApi.Forbidden error) => 
+                {
+                    throw new AssertionException("Forbidden");
+                },
+                (MemriseApi.ServerError error) => 
+                {
+                    throw new AssertionException("Server error");
+                }
+            );
+        }
+
+        private async Task RemoveAllTermDefinitions(string courseName)
+        {
+            var courseOption = await FindCourse(courseName, limit: 5);
+            var course = courseOption.ValueOrFailure();
+            var termDefs = await GetTermDefinitions(courseId: course.Id, slug: course.Slug);
+            foreach(var termDef in termDefs)
+            {
+                await RemoveTermDefinition(levelId: termDef.LevelId, thingId: termDef.ThingId);
+            }
         }
 
         private async Task UpdateTermDefinition(string thingId, string definition)

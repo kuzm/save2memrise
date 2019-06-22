@@ -77,7 +77,8 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             );
         }
 
-        private async Task<OneOf<Success, Forbidden, ServerError>> JoinDecks()
+        private async Task<OneOf<Success, Forbidden, ServerError>> 
+            JoinDecks()
         {
             var path = $"join/memrise-for-decks/";
             var result = await WrapResponse(() => GetResource(DecksAddress, path));
@@ -221,6 +222,19 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                             .Match<OneOf<IList<TermDefinition>, NotFound, Forbidden, ServerError>>(
                                 (HtmlDocument doc) => 
                                 {
+                                    var levelNode = doc.DocumentNode
+                                        .SelectSingleNode("html/body");
+                                    if (levelNode == null)
+                                    {
+                                        throw new InvalidOperationException("Level node was not found");
+                                    }
+
+                                    var levelId = levelNode.GetAttributeValue("data-level-id", null);
+                                    if (string.IsNullOrEmpty(levelId))
+                                    {
+                                        throw new InvalidOperationException("Level ID not specified");
+                                    }
+
                                     var thingNodes = doc.DocumentNode
                                         .SelectNodes("//div[@class='thing text-text']");
 
@@ -264,7 +278,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                                                 throw new InvalidOperationException("Definition is empty");
                                             }
 
-                                            return new TermDefinition(thingId: thingId, term: term, definition: def);
+                                            return new TermDefinition(thingId: thingId, levelId: levelId, term: term, definition: def);
                                         })
                                         .ToList();
 
@@ -329,6 +343,33 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             {
                 new KeyValuePair<string, string>("columns", columns.ToString()),
                 new KeyValuePair<string, string>("level_id", levelId),
+            };
+
+            var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
+            return await result.Match<Task<OneOf<Success, NotFound, Forbidden, ServerError>>>(
+                (HttpResponseMessage message) => 
+                {
+                    using (message) 
+                    {
+                        return Task.FromResult<OneOf<Success, NotFound, Forbidden, ServerError>>(new Success());
+                    }
+                },
+                (Forbidden error) => Task.FromResult<OneOf<Success, NotFound, Forbidden, ServerError>>(error),
+                (ServerError error) => Task.FromResult<OneOf<Success, NotFound, Forbidden, ServerError>>(error)
+            );
+        }
+
+        public async Task<OneOf<Success, NotFound, Forbidden, ServerError>> 
+            RemoveTermDefinition(string levelId, string thingId)
+        {
+            //TODO Return NotFound when not found
+
+            string reqPath = "/ajax/level/thing_remove/";
+
+            var parameters = new List<KeyValuePair<string, string>> 
+            {
+                new KeyValuePair<string, string>("level_id", levelId),
+                new KeyValuePair<string, string>("thing_id", thingId)
             };
 
             var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
