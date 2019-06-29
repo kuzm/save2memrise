@@ -58,6 +58,7 @@ Task("CalculateVersion")
         if (!System.IO.Directory.Exists(".git"))
         {
             Information("GitVersion won't be executed because .git directory doesn't exist.");
+            return;
         }
 
         // We can't use GitVersion() directly because it requires Mono
@@ -74,12 +75,15 @@ Task("CalculateVersion")
             Debug("GitVersion output: {0}", output);
             var result = JsonConvert.DeserializeObject<GitVersionResult>(output);
             
-            if (result.BranchName == "master")
+            if (result.BranchName != "master")
             {
-                // Store version
-                Information("Version, calculated by GitVersion: {0}", result.NuGetVersion);
-                System.IO.File.WriteAllText("version.txt", result.NuGetVersion);
+                Information("Calculated version won't be stored because the current branch `{0}` is not `master`.", result.BranchName);
+                return;
             }
+
+            // Store version
+            Information("Version, calculated by GitVersion: {0}", result.NuGetVersion);
+            System.IO.File.WriteAllText("version.txt", result.NuGetVersion);
         }
     });
 
