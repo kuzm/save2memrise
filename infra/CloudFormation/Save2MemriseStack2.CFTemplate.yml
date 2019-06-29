@@ -12,6 +12,10 @@ Parameters:
     Type: String
     NoEcho: true
     Default: '{{resolve:secretsmanager:S2MPipeline:SecretString:GitHubAuthToken}}'
+  TestMemrisePassword:
+    Type: String
+    NoEcho: true
+    Default: '{{resolve:secretsmanager:S2MPipeline:SecretString:TestMemrisePassword}}'
   EcsClusterName:
     Type: String
     Description: >
@@ -73,6 +77,7 @@ Resources:
       Parameters: 
         GitHubOwner: !Ref GitHubOwner
         GitHubOAuthToken: !Ref GitHubOAuthToken
+        TestMemrisePassword: !Ref TestMemrisePassword
         BlueProdChromeExtBucketName: !GetAtt BlueProdDeployableStack.Outputs.ChromeExtBucketName
         GreenProdChromeExtBucketName: !GetAtt GreenProdDeployableStack.Outputs.ChromeExtBucketName
         BlueProdChromeExtCloudfrontDistribution: !GetAtt BlueProdDeployableStack.Outputs.ChromeExtCloudfrontDistribution

@@ -11,6 +11,9 @@ Parameters:
   GitHubOAuthToken:
     Type: String
     NoEcho: true
+  TestMemrisePassword:
+    Type: String
+    NoEcho: true
   BlueProdChromeExtBucketName: 
     Type: String
     Description: S3 Bucket Name of the Chrome extension
@@ -77,6 +80,8 @@ Resources:
             Value: 321373361512
           - Name: ENVIRONMENT
             Value: prod
+          - Name: SAVE2MEMRISE_Memrise__Password
+            Value: !Ref TestMemrisePassword
       Source:
         Type: CODEPIPELINE
         BuildSpec: test-public-api-buildspec.yml

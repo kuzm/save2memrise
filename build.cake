@@ -31,10 +31,7 @@ class Version
 Version version;
 
 Task("Default")
-    .IsDependentOn("Build")
-    .Does(() =>
-    {
-    });
+    .IsDependentOn("Build");
 
 Task("ConfigureVersion")
     .Does(() => 
@@ -128,10 +125,7 @@ Task("IntegrationTest")
 
 Task("Test")
     .IsDependentOn("UnitTest")
-    .IsDependentOn("IntegrationTest")
-    .Does(() =>
-    {
-    });
+    .IsDependentOn("IntegrationTest");
 
 Task("LoginToECR")
     .Does(() =>
@@ -216,9 +210,7 @@ Task("PushPublicApiDockerImage")
 
 Task("DeployPublicApi")
     .IsDependentOn("UnitTest")
-    .IsDependentOn("PushPublicApiDockerImage")
-    .Does(() =>
-    {});
+    .IsDependentOn("PushPublicApiDockerImage");
 
 Task("PushChromeExtFrameToS3")
     .IsDependentOn("BuildChromeExt")
@@ -262,9 +254,7 @@ Task("InvalidateCloudFrontCache")
 Task("DeployChromeExtFrame")
     .IsDependentOn("BuildChromeExt")
     .IsDependentOn("PushChromeExtFrameToS3")
-    .IsDependentOn("InvalidateCloudFrontCache")
-    .Does(() =>
-    {});
+    .IsDependentOn("InvalidateCloudFrontCache");
 
 
 Task("BuildBuilderDockerImage")
