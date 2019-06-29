@@ -201,13 +201,13 @@ Resources:
       Stages:
         - Name: Source
           Actions:
-            - InputArtifacts: []
-              Name: Source
+            - Name: Source
               ActionTypeId: 
                 Category: Source
                 Owner: ThirdParty
                 Version: 1
                 Provider: GitHub
+              InputArtifacts: []
               OutputArtifacts: 
                 - Name: SourceOutput
               Configuration: 
@@ -217,7 +217,7 @@ Resources:
                 OAuthToken: !Ref GitHubOAuthToken
                 PollForSourceChanges: false
               RunOrder: 1
-        - Name: Build
+        - Name: Test
           Actions:
             - Name: TestPublicApi
               ActionTypeId:
@@ -230,7 +230,9 @@ Resources:
               Configuration:
                 ProjectName: !Ref TestPublicApiProject
               RunOrder: 1
-            - Name: Approval
+        - Name: PrepareForDeploy
+          Actions:
+            - Name: Approve
               ActionTypeId:
                 Category: Approval
                 Owner: AWS
@@ -238,7 +240,7 @@ Resources:
                 Provider: Manual
               Configuration:
                 CustomData: 'Approve image building'
-              RunOrder: 2
+              RunOrder: 1
             - Name: BuildPublicApiImage
               ActionTypeId:
                 Category: Build
@@ -251,10 +253,10 @@ Resources:
                 - Name: BuildPublicApiOutput
               Configuration:
                 ProjectName: !Ref BuildPublicApiImageProject
-              RunOrder: 3
+              RunOrder: 2
         - Name: DeployToBlueProd
           Actions:
-            - Name: Approval
+            - Name: Approve
               ActionTypeId:
                 Category: Approval
                 Owner: AWS
@@ -291,7 +293,7 @@ Resources:
               RunOrder: 3
         - Name: DeployToGreenProd
           Actions:
-            - Name: Approval
+            - Name: Approve
               ActionTypeId:
                 Category: Approval
                 Owner: AWS
