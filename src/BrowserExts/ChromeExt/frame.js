@@ -23,7 +23,6 @@ $(document).ready(function() {
       }
       
       initTermAndDefinitionInputs()
-      //TODO initCourseDropdown();
     
       $("#saveWordBtn")
         .on('click', saveWord);
@@ -149,6 +148,9 @@ function setDefinitionTxtValue(val)
 function getCourses() {
   console.log('Courses requested');
 
+  $("#loadingCoursesDimmer")
+    .dimmer('show');
+
   console.log("Requesting memrise cookies...");
   sendMessage({ requestData: true }, 
     function(response) {
@@ -173,14 +175,23 @@ function sendCoursesRequest(memriseCookies) {
 
 function handleCoursesResponse(xhr) {
   if (xhr.readyState == XMLHttpRequest.DONE) {
+    $("#loadingCoursesDimmer")
+      .dimmer('hide');
+
     if (xhr.status == 403) {
       console.warn('Courses retrieval failed: forbidden');
+      $("#forbiddenMessageDimmer")
+        .dimmer('show');
     }
     else if (xhr.status == 502) {
       console.error('Courses retrieval failed: bad gateway');
+      $("#errorMessageDimmer")
+        .dimmer('show');
     }
     else if (xhr.status != 200) {
       console.warn('Courses retrieval failed: ' + xhr.status);
+      $("#errorMessageDimmer")
+        .dimmer('show');
     }
     else if (xhr.status == 200) {
       console.info('Courses retrieved with success');
