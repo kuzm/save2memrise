@@ -1,3 +1,8 @@
+#tool "nuget:?package=GitVersion.CommandLine.DotNetCore&version=4.0.0"
+#addin "nuget:?package=Newtonsoft.Json&version=11.0.2"
+
+using Newtonsoft.Json;
+
 var target = Argument("target", "Default");
 var env = Argument("env", "local");
 var versionMetadata = Argument("version-metadata", "");
@@ -10,6 +15,12 @@ Information($"env: {env}");
 if (env != "local" && env != "prod" && env != "prod-blue" && env != "prod-green")
 {
     throw new ArgumentException(nameof(env));
+}
+
+class GitVersionResult
+{
+    public string NuGetVersion { get; set; }
+    public string BranchName { get; set; }
 }
 
 class Version
@@ -33,13 +44,53 @@ Version version;
 Task("Default")
     .IsDependentOn("Build");
 
+Task("CalculateVersion")
+    .Does(() => 
+    {
+        //TODO Make this task runnable in save2memrise/build container.
+        // Currently, it throws System.TypeInitializationException: 
+        //      The type initializer for 'LibGit2Sharp.Core.NativeMethods' threw an exception. 
+        //      ---> System.DllNotFoundException: Unable to load shared library 'git2-15e1193' 
+        //      or one of its dependencies. In order to help diagnose loading problems, 
+        //      consider setting the LD_DEBUG environment variable: libgit2-15e1193: cannot 
+        //      open shared object file: No such file or directory
+
+        if (!System.IO.Directory.Exists(".git"))
+        {
+            Information("GitVersion won't be executed because .git directory doesn't exist.");
+        }
+
+        // We can't use GitVersion() directly because it requires Mono
+        var gitVersionDll = Context.Tools.Resolve("GitVersion.dll");
+        var processSettings = new ProcessSettings
+        {
+            Arguments = gitVersionDll.FullPath,
+            RedirectStandardOutput = true
+        };
+        using (var process = StartAndReturnProcess("dotnet", processSettings))
+        {
+            // Parse version
+            string output = string.Join("", process.GetStandardOutput());
+            Debug("GitVersion output: {0}", output);
+            var result = JsonConvert.DeserializeObject<GitVersionResult>(output);
+            
+            if (result.BranchName == "master")
+            {
+                // Store version
+                Information("Version, calculated by GitVersion: {0}", result.NuGetVersion);
+                System.IO.File.WriteAllText("version.txt", result.NuGetVersion);
+            }
+        }
+    });
+
 Task("ConfigureVersion")
+    .IsDependentOn("CalculateVersion")
     .Does(() => 
     {
         System.IO.File.WriteAllText("version-metadata.txt", versionMetadata);
         var versionBase = System.IO.File.ReadAllText("version.txt").Trim();
         version = new Version(versionBase, versionMetadata);
-        Information($"Full version: {version.FullVersion}");
+        Information("Full version: {0}", version.FullVersion);
     });
 
 Task("Build")
