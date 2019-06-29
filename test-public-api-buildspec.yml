@@ -1,0 +1,9 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - chmod +x ./dockerd-entrypoint.sh
+      - ./dockerd-entrypoint.sh
+      - chmod +x ./build.sh
+      - ./build.sh --target=UnitTest --env=$ENVIRONMENT --version-metadata=$CODEBUILD_RESOLVED_SOURCE_VERSION --aws-region=$AWS_DEFAULT_REGION --aws-account-id=$AWS_ACCOUNT_ID
