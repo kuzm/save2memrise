@@ -8,6 +8,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Serilog;
+using Serilog.Formatting.Compact;
 
 namespace Save2Memrise.Services.Public.API
 {
@@ -26,7 +27,7 @@ namespace Save2Memrise.Services.Public.API
 
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(Configuration)
-                .Enrich.FromLogContext()
+                .WriteTo.Console(new CompactJsonFormatter())
                 .CreateLogger()
                 .ForContext("AppVersion", version);
 
