@@ -130,11 +130,13 @@ Run tests with cake:
 
 Deployment is performed by AWS CodePipeline. CodePipeline has the following steps configured: 
 1. GitHub as a source repository. 
-2. AWS CodeBuild to build docker images and push them to ECR. 
-2.1. CodeBuild reads `public-api-buildspec.yml` for build instructions.  
-3. AWS CodeDeploy which pulls docker images from ECR and deploys them to ECS. 
-4. AWS CodeBuild with builds chrome extension, uploads to S3, and invalidates CloudFront cache. 
-4.1. CodeBuild reads `chrome-ext-buildspec.yml` for build instructions.
+2. CodeBuild runs unit and integration tests.
+    * CodeBuild reads `test-public-api-buildspec.yml` for build instructions.  
+3. CodeBuild builds docker images and pushes them to ECR. 
+    * CodeBuild reads `build-public-api-image-buildspec.yml` for build instructions.  
+3. CodeDeploy pulls docker images from ECR and deploys them to ECS. 
+4. CodeBuild builds chrome extension, uploads to S3, and invalidates CloudFront cache. 
+    * CodeBuild reads `chrome-ext-buildspec.yml` for build instructions.
 
 Two environments are defined: blue and green. Both are production environments. 
 Green environment is a main one for stable releases. The blue environment is intended for unstable releases. Once a release is tested, live traffic should be switched from the green env to the blue env. If no issues are found, the release can be promoted to the green env and live traffic can be switched to the green env. If some issues are detected, the release should not be promoted, and live traffic should be switched back to the green env which still runs the stable version. When inactive, the blue env can be deactivated to optimize costs. 
