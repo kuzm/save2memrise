@@ -225,6 +225,27 @@ Resources:
         AliasTarget:
           HostedZoneId: !GetAtt LoadBalancer2.CanonicalHostedZoneID 
           DNSName: !GetAtt LoadBalancer2.DNSName
+  ProdWebsiteDNSName:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Join ['', [!Ref DomainName, .]]
+      RecordSets:
+        - Name: !Join ['', [!Ref DomainName, .]]
+          Type: A
+          TTL: 300
+          ResourceRecords:
+            # GitHub IP addresses are listed here: https://help.github.com/en/articles/setting-up-an-apex-domain
+            - 185.199.108.153
+            - 185.199.109.153
+            - 185.199.110.153
+            - 185.199.111.153
+        - Name: !Join ['.', ['www', !Ref DomainName]]
+          Type: A
+          AliasTarget:
+            # TODO Rid of the hardcoded identifier 
+            # Hosted zone ID of the domain 'save2memrise.com.'
+            HostedZoneId: Z4IL1TMMJIFXM
+            DNSName: !Ref DomainName
   LoadBalancerSecurityGruop: 
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
