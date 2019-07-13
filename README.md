@@ -1,6 +1,6 @@
 # Save to Memrise
 
-This unofficial extension allows you to add a word or phrase to your Memrise in a few clicks. You can add a selection from a web page or type in a word directly. The extension creates a course with saved words that you can then practice on https://decks.memrise.com.
+This unofficial extension allows you to add a word or phrase to your Memrise in a few clicks. You can add a selection from a web page or type in a word directly. The extension creates a course with saved words that you can then practice on [decks.memrise.com](https://decks.memrise.com).
 
 To install this extension to your Chrome browser, [go to Chrome Web Store](https://chrome.google.com/webstore/detail/save-to-memrise/jedpoleopoehklpioonelookacalmcfk). 
 
@@ -36,7 +36,7 @@ docker-compose up --force-recreate --build
 
 ### AWS CLI in Docker
 
-The mesosphere/aws-cli image provides containerized AWS CLI on alpine to avoid requiring the AWS CLI to be installed. Read more https://hub.docker.com/r/mesosphere/aws-cli. 
+The `mesosphere/aws-cli` image provides containerized AWS CLI on alpine to avoid requiring the AWS CLI to be installed. Read more on [Docker Hub](https://hub.docker.com/r/mesosphere/aws-cli). 
 
 Usage:
 1. Make sure, that `.aws` folder exists:
@@ -45,9 +45,9 @@ mkdir ~/.aws
 ```
 
 2. Run docker in interactive mode: 
-docker run -v "$(pwd):/project" -v "/Users/mkuz/.aws:/root/.aws" -it --entrypoint /bin/sh mesosphere/aws-cli
-
-Note, change `/Users/mkuz/.aws` to a proper path.
+```
+docker run -v "$(pwd):/project" -v ~/.aws:/root/.aws -it --entrypoint /bin/sh mesosphere/aws-cli
+```
 
 3. (Optional) If your `.aws` folder is empty, execute:
 ```
@@ -138,6 +138,11 @@ Deployment is performed by AWS CodePipeline. CodePipeline has the following step
 4. CodeBuild builds chrome extension, uploads to S3, and invalidates CloudFront cache. 
     * CodeBuild reads `chrome-ext-buildspec.yml` for build instructions.
 
+AWS CodePipeline is configured to build solution and run tests inside a docker container which is based on `build.Dockerfile`. The corresponding docker image is pushed to ECR. You can use this docker image locally to build and run tests as if it was done by CodePipeline: 
+```
+docker run -v "$(pwd):/src" -v ~/.aws:/root/.aws -it --entrypoint /bin/sh 321373361512.dkr.ecr.eu-central-1.amazonaws.com/save2memrise/build:0.1.0
+```
+
 Two environments are defined: blue and green. Both are production environments. 
 Green environment is a main one for stable releases. The blue environment is intended for unstable releases. Once a release is tested, live traffic should be switched from the green env to the blue env. If no issues are found, the release can be promoted to the green env and live traffic can be switched to the green env. If some issues are detected, the release should not be promoted, and live traffic should be switched back to the green env which still runs the stable version. When inactive, the blue env can be deactivated to optimize costs. 
 
@@ -223,7 +228,7 @@ aws sts decode-authorization-message --encoded-message <value>
 4. Go to [Chrome Web Store Console](https://chrome.google.com/webstore/developer/dashboard?authuser=1) and sign in as `save2memrise@gmail.com` user
 5. Upload the archive
 
-The extension is published at https://chrome.google.com/webstore/detail/save-to-memrise/jedpoleopoehklpioonelookacalmcfk?authuser=1
+The extension is published to [Chrome Web Store](https://chrome.google.com/webstore/detail/save-to-memrise/jedpoleopoehklpioonelookacalmcfk). 
 
 To publish the extension to the world, you need to re-publish with other visibility options.
 
@@ -239,9 +244,7 @@ To make Green or Blue active environment, update CloudFormation stack:
 
 ## Investigate Memrise API 
 
-Sniff traffic of the Memrise mobile app with Packet Capture app on your Android device. Capture app produces *.pcap files that can be stored in `Download` folder of your Android device. If you can't see these files when browsing your device's files with Android File Transfer from your Mac via MTP, rebuild your device's SD index. To rescan your SD, use SD Card Scanner Pro app from Google Play. 
-
-*Update*: Sniff traffic from decks.memrise.com by using Developer tools in Chrome. Memrise REST API is no longer used. 
+Sniff traffic from decks.memrise.com by using Developer tools in Chrome. Memrise REST API is no longer used. 
 
 ## Troubleshooting
 
