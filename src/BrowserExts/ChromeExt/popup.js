@@ -22,7 +22,7 @@ function isFrameLocal() {
 }
 
 function handleMessage(request, sender, sendResponse) {
-  console.log("Message was received: " + JSON.stringify(request));
+  console.log("Message was received");
   if (request.requestData) {
     console.log("Data requested");
     var selectedText = getCookie('selectedText');

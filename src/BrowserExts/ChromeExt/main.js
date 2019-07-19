@@ -1,7 +1,6 @@
 
 function onClick(info, tab) {
   var selectedText = info.selectionText;
-  console.log("Selected text: " + selectedText);
   //TODO check max length
 
   setCookie('selectedText', selectedText, 1);
