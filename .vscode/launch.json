@@ -9,9 +9,9 @@
            "type": "coreclr",
            "request": "launch",
            "preLaunchTask": "buildIntegrationTests",
-           "program": "${workspaceFolder}/test/Services/Public.API.IntegrationTests/bin/Debug/netcoreapp2.1/Public.API.IntegrationTests.dll",
+           "program": "${workspaceFolder}/test/Services/Public.API.IntegrationTests/bin/Debug/netcoreapp2.2/Public.API.IntegrationTests.dll",
            "args": [],
-           "cwd": "${workspaceFolder}/test/Services/Public.API.IntegrationTests/bin/Debug/netcoreapp2.1/",
+           "cwd": "${workspaceFolder}/test/Services/Public.API.IntegrationTests/bin/Debug/netcoreapp2.2/",
            "stopAtEntry": false,
            "console": "internalConsole"
        },
@@ -21,7 +21,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Services/Public.API/bin/Debug/netcoreapp2.1/Public.API.dll",
+            "program": "${workspaceFolder}/src/Services/Public.API/bin/Debug/netcoreapp2.2/Public.API.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/Services/Public.API",
             "stopAtEntry": false,

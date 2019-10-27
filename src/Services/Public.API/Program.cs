@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using App.Metrics;
+using App.Metrics.AspNetCore;
 using App.Metrics.AspNetCore.Health;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
@@ -47,8 +49,9 @@ namespace Save2Memrise.Services.Public.API
             }
         }
 
-        public static IWebHost BuildWebHost(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
+        public static IWebHost BuildWebHost(string[] args) 
+        {
+            return WebHost.CreateDefaultBuilder(args)
                 .ConfigureAppHealthHostingConfiguration(options => 
                 {
                     options.HealthEndpoint = "/_system/health";
@@ -60,5 +63,6 @@ namespace Save2Memrise.Services.Public.API
                 .UseSerilog()
                 .UseUrls("http://*:8080")
                 .Build();
+        }
     }
 }

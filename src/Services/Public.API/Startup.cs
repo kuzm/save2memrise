@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using App.Metrics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -26,14 +28,15 @@ namespace Save2Memrise.Services.Public.API
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<Serilog.ILogger>(Serilog.Log.Logger);
-
+            
             services.AddCors(options => 
                 options.AddPolicy("AllowAll", p => p
                         .AllowAnyOrigin()
                         .AllowAnyMethod()
                         .AllowAnyHeader()));     
         
-            services.AddMvc();
+            services.AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);;
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
