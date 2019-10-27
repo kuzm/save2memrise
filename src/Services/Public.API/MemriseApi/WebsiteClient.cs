@@ -72,8 +72,8 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                         return JoinDecks();
                     }
                 },
-                (Forbidden error) => Task.FromResult<OneOf<Success, Forbidden, ServerError>>(error),
-                (ServerError error) => Task.FromResult<OneOf<Success, Forbidden, ServerError>>(error)
+                async (Forbidden error) => await Task.FromResult(error),
+                async (ServerError error) => await Task.FromResult(error)
             );
         }
 
@@ -107,15 +107,15 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
 
             var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/home/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, Forbidden, ServerError>>>(
-                (HttpResponseMessage message) => 
+                async (HttpResponseMessage message) => 
                 {
                     using (message) 
                     {
-                        return Task.FromResult<OneOf<Success, Forbidden, ServerError>>(new Success());
+                        return await Task.FromResult(new Success());
                     }
                 },
-                (Forbidden error) => Task.FromResult<OneOf<Success, Forbidden, ServerError>>(error),
-                (ServerError error) => Task.FromResult<OneOf<Success, Forbidden, ServerError>>(error)
+                async (Forbidden error) => await Task.FromResult(error),
+                async (ServerError error) => await Task.FromResult(error)
             );
         }
 
@@ -130,15 +130,27 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
 
             for(var offest = 0; ; offest += MemriseApi.WebsiteClient.CourseLimitOnDashboard)
             {
+                var result = await GetDashboardChunk(offest);
+                if (result.IsT0 && result.AsT0.Courses.Count == 0)
+                {
+                    break;
+                }
+                else if (!result.IsT0)
+                {
+                    return result;
+                }
+            }
+
+            return mergedDashboard;
+
+            async Task<OneOf<DashboardData, Forbidden, ServerError>> 
+                GetDashboardChunk(int offest)
+            {
                 var getDashboardResult = await GetDashboard(offset: offest, limit: MemriseApi.WebsiteClient.CourseLimitOnDashboard);
                 if (getDashboardResult.TryPickT0(out var dashboard, out var remainder))
                 {
-                    if (dashboard.Courses.Count == 0)
-                    {
-                        break;
-                    }
-
                     mergedDashboard.Courses.AddRange(dashboard.Courses.Where(c => c.NumLevels == 1));
+                    return dashboard;
                 }
                 else 
                 {
@@ -147,8 +159,6 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                         (MemriseApi.ServerError error) => error);
                 }
             }
-
-            return mergedDashboard;
         }
 
         public async Task<OneOf<DashboardData, Forbidden, ServerError>> 
@@ -157,20 +167,23 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             var path = $"ajax/courses/dashboard/?courses_filter=most_recent&offset={offset}&limit={limit}&get_review_count=false";
             var result = await WrapResponse(() => GetResource(DecksAddress, path));
             return await result.Match<Task<OneOf<DashboardData, Forbidden, ServerError>>>(
-                async (HttpResponseMessage message) => 
-                {
-                    using (message) 
-                    {
-                        return (await ParseResponse<DashboardData>(message))
-                            .Match<OneOf<DashboardData, Forbidden, ServerError>>(
-                                (DashboardData data) => data,
-                                (ServerError error) => error
-                            );
-                    }
-                },
+                (HttpResponseMessage message) => HandleDashboardResponse(message),
                 (Forbidden error) => Task.FromResult<OneOf<DashboardData, Forbidden, ServerError>>(error),
                 (ServerError error) => Task.FromResult<OneOf<DashboardData, Forbidden, ServerError>>(error)
             );
+
+            async Task<OneOf<DashboardData, Forbidden, ServerError>> 
+                HandleDashboardResponse(HttpResponseMessage message)
+            {
+                using (message) 
+                {
+                    return (await ParseResponse<DashboardData>(message))
+                        .Match<OneOf<DashboardData, Forbidden, ServerError>>(
+                            (DashboardData data) => data,
+                            (ServerError error) => error
+                        );
+                }
+            }
         }
 
         public async Task<OneOf<CourseData, NotFound, Forbidden, ServerError>>
