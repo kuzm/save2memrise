@@ -88,6 +88,7 @@ namespace Save2Memrise.Services.Public.API
                 })
                 .UseMetricsWebTracking(options => 
                 {
+                    options.ApdexTrackingEnabled = false;
                     options.OAuth2TrackingEnabled = false;
                 })
                 .UseStartup<Startup>()
