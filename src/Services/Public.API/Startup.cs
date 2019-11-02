@@ -1,16 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
-using App.Metrics;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Cors.Infrastructure;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Save2Memrise.Services.Public.API.Middleware;
 
 namespace Save2Memrise.Services.Public.API
@@ -36,7 +28,8 @@ namespace Save2Memrise.Services.Public.API
                         .AllowAnyHeader()));     
         
             services.AddMvc()
-                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);;
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+                .AddMetrics();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

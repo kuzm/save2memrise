@@ -97,8 +97,23 @@ Task("ConfigureVersion")
         Information("Full version: {0}", version.FullVersion);
     });
 
+Task("UpdateVersionForDotNet")
+    .IsDependentOn("ConfigureVersion")
+    .Does(() => 
+    {
+        var propsContent = 
+            "<Project>\n" +
+            "  <PropertyGroup>\n" +
+            $"     <Version>{version.FullVersion}</Version>\n" +
+            "  </PropertyGroup>\n" +
+            "</Project>\n";
+
+        System.IO.File.WriteAllText("Directory.Build.props", propsContent);
+    });
+
 Task("Build")
     .IsDependentOn("ConfigureVersion")
+    .IsDependentOn("UpdateVersionForDotNet")
     .IsDependentOn("BuildPublicApi")
     .IsDependentOn("BuildChromeExt")
     .Does(() =>
@@ -107,6 +122,7 @@ Task("Build")
 
 Task("BuildPublicApi")
     .IsDependentOn("ConfigureVersion")
+    .IsDependentOn("UpdateVersionForDotNet")
     .Does(() =>
     {
         DotNetCoreBuild(".");

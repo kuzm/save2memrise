@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using App.Metrics;
 using App.Metrics.AspNetCore;
 using App.Metrics.AspNetCore.Health;
+using App.Metrics.Formatters.Prometheus;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -51,6 +50,19 @@ namespace Save2Memrise.Services.Public.API
 
         public static IWebHost BuildWebHost(string[] args) 
         {
+            var metrics = AppMetrics.CreateDefaultBuilder()
+                .Configuration.Configure(options =>
+                {
+                    options.Enabled = true;
+                    options.DefaultContextLabel = "s2m";
+                    options.WithGlobalTags((tags, envInfo) =>
+                    {
+                        tags.Add("app_version", envInfo.EntryAssemblyVersion);
+                    });
+                })
+                .OutputMetrics.AsPrometheusPlainText()
+                .Build();
+
             return WebHost.CreateDefaultBuilder(args)
                 .ConfigureAppHealthHostingConfiguration(options => 
                 {
@@ -58,6 +70,26 @@ namespace Save2Memrise.Services.Public.API
                     options.PingEndpoint = "/_system/ping";
                 })
                 .UseHealth()
+                .ConfigureAppMetricsHostingConfiguration(options => 
+                {
+                    options.MetricsTextEndpoint = "/_system/metrics";
+                })
+                .ConfigureMetrics(metrics)
+                .UseMetrics(options =>
+                {
+                    options.EndpointOptions = endpointsOptions =>
+                    {
+                        endpointsOptions.MetricsEndpointEnabled = false;
+                        endpointsOptions.MetricsTextEndpointEnabled = true;
+                        endpointsOptions.EnvironmentInfoEndpointEnabled = true;
+                        endpointsOptions.MetricsTextEndpointOutputFormatter 
+                            = metrics.OutputMetricsFormatters.OfType<MetricsPrometheusTextOutputFormatter>().First();
+                    };
+                })
+                .UseMetricsWebTracking(options => 
+                {
+                    options.OAuth2TrackingEnabled = false;
+                })
                 .UseStartup<Startup>()
                 .UseConfiguration(Configuration)
                 .UseSerilog()
