@@ -21,7 +21,8 @@ namespace Save2Memrise.Services.Public.API.UnitTests
 
             var types = typeof(Program).Assembly.GetTypes();
             var finder = new SpecFinder(types, "");
-            var tagsFilter = new Tags().Parse("");
+            var tagsString = string.Join(' ', args ?? new string[0]);
+            var tagsFilter = new Tags().Parse(tagsString);
             var builder = new ContextBuilder(finder, tagsFilter, new DefaultConventions());
             var runner = new ContextRunner(tagsFilter, new ConsoleFormatter(), false);
             var results = runner.Run(builder.Contexts().Build());

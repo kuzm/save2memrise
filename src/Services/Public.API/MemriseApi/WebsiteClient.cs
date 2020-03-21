@@ -20,8 +20,6 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
     {
         public static readonly int CourseLimitOnDashboard = 7;
         public static readonly Uri MemriseAddress = new Uri("https://www.memrise.com");
-        public static readonly Uri DecksAddress = new Uri("https://decks.memrise.com");
-        
         private static readonly IDictionary<int, (string Short, string Long)> _termLangs = new Dictionary<int, (string, string)>()
             {
                 {6, ("En", "English")},
@@ -65,33 +63,15 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
 
             var result = await WrapResponse(() => PostResourceAsForm(MemriseAddress, reqPath: "/login/", pagePath: "/login/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, Forbidden, ServerError>>>(
-                (HttpResponseMessage message) => 
+                async (HttpResponseMessage message) => 
                 {
                     using (message) 
                     {
-                        return JoinDecks();
+                        return await Task.FromResult(new Success());
                     }
                 },
                 async (Forbidden error) => await Task.FromResult(error),
                 async (ServerError error) => await Task.FromResult(error)
-            );
-        }
-
-        private async Task<OneOf<Success, Forbidden, ServerError>> 
-            JoinDecks()
-        {
-            var path = $"join/memrise-for-decks/";
-            var result = await WrapResponse(() => GetResource(DecksAddress, path));
-            return result.Match<OneOf<Success, Forbidden, ServerError>>(
-                (HttpResponseMessage message) => 
-                {
-                    using (message) 
-                    {
-                        return new Success();
-                    }
-                },
-                (Forbidden error) => error,
-                (ServerError error) => error
             );
         }
 
@@ -105,7 +85,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                 new KeyValuePair<string, string>("course_id", courseId)
             };
 
-            var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/home/", parameters: parameters));
+            var result = await WrapResponse(() => PostResourceAsAjax(MemriseAddress, reqPath: reqPath, pagePath: "/home/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, Forbidden, ServerError>>>(
                 async (HttpResponseMessage message) => 
                 {
@@ -165,7 +145,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             GetDashboard(int offset, int limit)
         {
             var path = $"ajax/courses/dashboard/?courses_filter=most_recent&offset={offset}&limit={limit}&get_review_count=false";
-            var result = await WrapResponse(() => GetResource(DecksAddress, path));
+            var result = await WrapResponse(() => GetResource(MemriseAddress, path));
             return await result.Match<Task<OneOf<DashboardData, Forbidden, ServerError>>>(
                 (HttpResponseMessage message) => HandleDashboardResponse(message),
                 (Forbidden error) => Task.FromResult<OneOf<DashboardData, Forbidden, ServerError>>(error),
@@ -225,7 +205,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             GetTermDefinitions(string courseId, string slug)
         {
             var path = $"course/{courseId}/{slug}/";
-            var result = await WrapResponse(() => GetResource(DecksAddress, path));
+            var result = await WrapResponse(() => GetResource(MemriseAddress, path));
             return await result.Match<Task<OneOf<IList<TermDefinition>, NotFound, Forbidden, ServerError>>>(
                 async (HttpResponseMessage message) => 
                 {
@@ -310,7 +290,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
             GetSingleLevelId(string courseId, string slug)
         {
             var path = $"course/{courseId}/{slug}/";
-            var result = await WrapResponse(() => GetResource(DecksAddress, path));
+            var result = await WrapResponse(() => GetResource(MemriseAddress, path));
             return await result.Match<Task<OneOf<string, NotFound, Forbidden, ServerError>>>(
                 async (HttpResponseMessage message) => 
                 {
@@ -358,7 +338,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                 new KeyValuePair<string, string>("level_id", levelId),
             };
 
-            var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
+            var result = await WrapResponse(() => PostResourceAsAjax(MemriseAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, NotFound, Forbidden, ServerError>>>(
                 (HttpResponseMessage message) => 
                 {
@@ -385,7 +365,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                 new KeyValuePair<string, string>("thing_id", thingId)
             };
 
-            var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
+            var result = await WrapResponse(() => PostResourceAsAjax(MemriseAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
             return await result.Match<Task<OneOf<Success, NotFound, Forbidden, ServerError>>>(
                 (HttpResponseMessage message) => 
                 {
@@ -414,7 +394,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
                     new KeyValuePair<string, string>("new_val", definition),
                 };
 
-                var result = await WrapResponse(() => PostResourceAsAjax(DecksAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
+                var result = await WrapResponse(() => PostResourceAsAjax(MemriseAddress, reqPath: reqPath, pagePath: "/course/create/", parameters: parameters));
                 if (result.TryPickT0(out HttpResponseMessage message, out var remainder))
                 {
                     using (message) {}

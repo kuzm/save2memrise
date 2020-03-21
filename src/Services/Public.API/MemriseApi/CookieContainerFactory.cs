@@ -8,7 +8,7 @@ namespace Save2Memrise.Services.Public.API.MemriseApi
     {
         public static CookieContainer Create(List<CookieData> cookies)
         {
-            var baseAddress = WebsiteClient.DecksAddress;
+            var baseAddress = WebsiteClient.MemriseAddress;
             var cookieContainer = new CookieContainer();
             foreach (var cookie in cookies)
             {

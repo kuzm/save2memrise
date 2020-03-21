@@ -20,6 +20,16 @@
                 "${workspaceFolder}/test/Services/Public.API.IntegrationTests/Public.API.IntegrationTests.csproj"
             ],
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "buildUnitTests",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/test/Services/Public.API.UnitTests/Public.API.UnitTests.csproj"
+            ],
+            "problemMatcher": "$msCompile"
         }
     ]
 }

@@ -4,13 +4,24 @@
    // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
    "version": "0.2.0",
    "configurations": [
+        {
+            "name": "Public API Unit Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildUnitTests",
+            "program": "${workspaceFolder}/test/Services/Public.API.UnitTests/bin/Debug/netcoreapp2.2/Public.API.UnitTests.dll",
+            "args": ["x"],
+            "cwd": "${workspaceFolder}/test/Services/Public.API.UnitTests/bin/Debug/netcoreapp2.2/",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
        {
            "name": "Public API Integration Tests",
            "type": "coreclr",
            "request": "launch",
            "preLaunchTask": "buildIntegrationTests",
            "program": "${workspaceFolder}/test/Services/Public.API.IntegrationTests/bin/Debug/netcoreapp2.2/Public.API.IntegrationTests.dll",
-           "args": [],
+           "args": ["x"],
            "cwd": "${workspaceFolder}/test/Services/Public.API.IntegrationTests/bin/Debug/netcoreapp2.2/",
            "stopAtEntry": false,
            "console": "internalConsole"
