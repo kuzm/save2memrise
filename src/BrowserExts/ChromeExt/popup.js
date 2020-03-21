@@ -28,7 +28,7 @@ function handleMessage(request, sender, sendResponse) {
     var selectedText = getCookie('selectedText');
     setCookie('selectedText', selectedText, -1);
     
-    var memriseUrl = "https://decks.memrise.com/ajax/courses/dashboard/";
+    var memriseUrl = "https://www.memrise.com/ajax/courses/dashboard/";
     getMemriseCookies(memriseUrl, cookies => {
         var memriseCookies = cookies.map(v => { 
             return {

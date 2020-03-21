@@ -1,6 +1,6 @@
 # Save to Memrise
 
-This unofficial extension allows you to add a word or phrase to your Memrise in a few clicks. You can add a selection from a web page or type in a word directly. The extension creates a course with saved words that you can then practice on [decks.memrise.com](https://decks.memrise.com).
+This unofficial extension allows you to add a word or phrase to your Memrise in a few clicks. You can add a selection from a web page or type in a word directly. The extension creates a course with saved words that you can then practice on [www.memrise.com](https://www.memrise.com).
 
 To install this extension to your Chrome browser, [go to Chrome Web Store](https://chrome.google.com/webstore/detail/save-to-memrise/jedpoleopoehklpioonelookacalmcfk). 
 
@@ -244,7 +244,7 @@ To make Green or Blue active environment, update CloudFormation stack:
 
 ## Investigate Memrise API 
 
-Sniff traffic from decks.memrise.com by using Developer tools in Chrome. Memrise REST API is no longer used. 
+Sniff traffic from www.memrise.com by using Developer tools in Chrome. Memrise REST API is no longer used. 
 
 ## Troubleshooting
 
